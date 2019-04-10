@@ -1,6 +1,6 @@
 # SINQ SciCAT File Ingestion
 
-This is a set of programs for ingesting SINQ data files into the SciCAT database. At the time of writing (04/2018)
+This is a set of programs for ingesting SINQ data files into the SciCAT database. At the time of writing (04/2019)
 this is a proof of concept implementation working only for SANS data files from 2017 and 2018. 
 
 ## Authors
