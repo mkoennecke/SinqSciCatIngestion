@@ -23,7 +23,8 @@ numor = []
 prop = []
 tdiff = []
 mdiff = []
-
+elapsed = []
+txtdiff = []
 with open(sys.argv[1],'r') as fin:
     for line in fin:
         ld = line.split(':')
@@ -37,6 +38,10 @@ with open(sys.argv[1],'r') as fin:
             prop.append(0)
             mdiff.append(int(ld[3])*10)
             tdiff.append(float(ld[4])/60)
+            elapsed.append(0)
+            txtdiff.append(int(ld[5])*10)
+        elif ld[0] == 'ELAPSED':
+            elapsed[int(ld[1])-1] = float(ld[2])
         elif ld[0] == 'PROP':
             num = int(ld[1])
             if len(prop) < num+1:
@@ -45,15 +50,17 @@ with open(sys.argv[1],'r') as fin:
                     prop.append(0)
                     tdiff.append(0)
                     mdiff.append(0)
+                    txtdiff.append(0)
+                    elapsed.append(0)
             prop[num-1] = 1000
         else:
             pass
 
 #--------------- print it all....
 
-print(' NUMOR PROP   DeltaT  MDIFF')
-for n,p,t,m in zip(numor,prop,tdiff,mdiff):
-    print('%6d %3d %8.2f   %4d' % (n,p,t,m))
+print(' NUMOR PROP   DeltaT  MDIFF TDIFF  ELAPSED')
+for n,p,t,m,x,e in zip(numor,prop,tdiff,mdiff,txtdiff,elapsed):
+    print('%6d %3d %8.2f   %4d %4d %8.2f' % (n,p,t,m,x,e))
 
 
 # Now let us plot....
@@ -61,13 +68,17 @@ n = np.array(numor)
 p = np.array(prop)
 t = np.array(tdiff)
 m = np.array(mdiff)
+x = np.array(txtdiff)
+e = np.array(elapsed)
 
 print(' n = %d, p = %d, t = %d, m = %d' % (len(numor),len(prop),len(tdiff),len(mdiff)))
 
-plt.plot(n,p,linewidth=10)
+plt.plot(n,p,linewidth=4,alpha=0.3)
 plt.plot(n,t)
 plt.plot(n,m)
+plt.plot(n,x)
+plt.plot(n,e)
 
-plt.legend(['y = Proposal', 'y = time-diff', 'y = meta-diff'], loc='upper left')
+plt.legend(['y = Proposal', 'y = time-diff', 'y = meta-diff','y = txt-diff', 'y = elapsed'], loc='upper left')
 plt.show()            
 

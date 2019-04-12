@@ -45,6 +45,7 @@ def readSANS(filename):
     meta['start_time'] = str(entry['start_time'][0])
     meta['end_time'] = str(entry['end_time'][0])
     meta['instrument'] = np.string_('SANS')
+    meta['user'] = str(entry['user/name'][0])
     source = {}
     source['type'] = np.string_('Spallation Neutron Source')
     source['probe'] = np.string_('neutron')
@@ -98,9 +99,22 @@ def makeSANSSignature(meta):
     sample = meta['sample']
     det = meta['detector']              
     col = meta['collimator']
-    signature = meta['title'] + meta['collection_description'] +sample['name'] +\
+    signature = meta['title'] + meta['user'] + meta['collection_description'] +sample['name'] +\
                 sample['environment'] + ' ' + str(meta['wavelength']) + ' ' + str(det['distance']) +\
                 ' ' + str(col['size'])
     return signature
 
+
+def metaRecurse(root,meta):
+    for key,val in meta.items():
+        if isinstance(val,dict):
+            newroot = root + '/' + key
+            metaRecurse(newroot,val)
+        else:
+            print(root + '/' + key + '=' + str(val))
+    
+def printMeta(numor,meta):
+    print('################## MetaData for: ' + str(numor))
+    metaRecurse('',meta)
+        
     

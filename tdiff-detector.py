@@ -3,6 +3,7 @@ from sinqutils import SinqFileList
 from instruments import readMetaData,makeSignature
 from levenshtein import levenshtein
 from dateutil import parser
+import pdb
 
 # In the final version get this from the command line parameters
 inst = 'sans'
@@ -13,6 +14,15 @@ end=54677
 threshold = 10
 root='/afs/psi.ch/project/sinqdata/2018/sans'
 postfix = 'hdf'
+
+"""
+  This calculates a text only signature
+"""
+def txtSignature(meta):
+    sample = meta['sample']
+    signature = meta['title'] + meta['collection_description'] + meta['user'] + sample['name'] +\
+                sample['environment']
+    return signature
 
 
 filelist = SinqFileList(root, year, inst, postfix, start,end)
@@ -26,6 +36,7 @@ print('PROP:%d:%d:%s ' %(numor,0,currentmeta['experiment_identifier']))
 print('DS:%d:%d:%s ' %(numor,0,currentsignature))
 previousmeta = currentmeta
 tdiffsig = currentsignature
+prevtxtsig = txtSignature(currentmeta)
 for numor,dfile in fliter:
     try:
         meta = readMetaData(dfile)
@@ -35,14 +46,17 @@ for numor,dfile in fliter:
     signature = makeSignature(meta)
     etime = parser.parse(previousmeta['end_time'])
     stime = parser.parse(meta['start_time'])
-    diff = (stime-etime).seconds
-    if(diff > 4000):
-        print('PREDICT:%d' % (numor))
-    print('TDIFF:%d:%d:%d:%f' %(numor-1,numor,levenshtein(tdiffsig,signature),diff))
+    diff = (stime-etime).total_seconds()
+    txtsig = txtSignature(meta)
+#    if(diff > 4000):
+#        print('PREDICT:%d' % (numor))
+    print('TDIFF:%d:%d:%d:%f:%d' %(numor-1,numor,levenshtein(tdiffsig,signature),\
+                                   diff,levenshtein(prevtxtsig,txtsig)))
     etime = parser.parse(meta['end_time'])
-    print('ELAPSED:%d:%f' % (numor,(stime-etime).seconds))
+    print('ELAPSED:%d:%f' % (numor,(etime-stime).total_seconds()))
     previousmeta = meta
     tdiffsig = signature
+    prevtxtsig = txtsig
     mdiff = levenshtein(currentsignature,signature)
     if meta['experiment_identifier'] != currentproposal:
         print('PROP:%d:%d:%s ' %(numor,mdiff,meta['experiment_identifier']))
