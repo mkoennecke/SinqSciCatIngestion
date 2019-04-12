@@ -39,6 +39,7 @@ class SciCat(object):
         # create metadata infos from data in proposal and scientific meta data
 
             meta = {}
+            meta['principalInvestigator']=proposal['pi_email']
             meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
             meta['dataFormat'] = 'SANS-NEXUS-HDF5'
             meta['sourceFolder'] = root
