@@ -13,11 +13,13 @@ class SciCat(object):
         print('Dumping proposal not needed, instead need to verify if already in SciCat')
 
     def writeDataset(self, root, year, inst, postfix, start, end, scientificmeta, token):
+
+        print('Dumping Dataset ranging from %d to %d' %(start,end))
         # create filelisting file
 
         # TODO add year to root for sourceFolder ?
         filelist = open('intermediate/filelisting-'+str(year)+'-'+str(start)+'.txt','w') 
-        for num in range(start,end):
+        for num in range(start,end+1):
            fname = makeSINQrelFilename(int(year),inst,int(num),postfix)
            print(fname)
            filelist.write(fname)
@@ -50,7 +52,6 @@ class SciCat(object):
             meta['proposalId']=proposalId
             meta['scientificMetadata']=scientificmeta
             # create metadata.json file
-            print('Dumping Dataset ranging from %d to %d' %(start,end))
             metafile = open('intermediate/metadata-'+str(year)+'-'+str(start)+'.json','w') 
             metafile.write(json.dumps(meta, indent=3, sort_keys=True))
             metafile.close()
