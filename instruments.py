@@ -64,7 +64,7 @@ def readSANS(filename):
     meta = {}
     entry = f['entry1']
     meta['title'] = decodeHDF(entry['title'][0])
-    meta['collection_description'] = decodeHDF(entry['comment'][0])
+    meta['collection_description'] = decodeHDF(entry['comment'][0]).strip()
     # todo normalize times to RFC format
     meta['start_time'] = decodeHDF(entry['start_time'][0])
      # todo normalize times to RFC format

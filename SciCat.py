@@ -4,49 +4,58 @@
    Mark Koennecke, April 2019 
 """
 import json 
+from sinqutils import makeSINQrelFilename
+import urllib.parse
+import requests
 
 class SciCat(object):
     def writeProposal(self,meta):
-# TODO: Find the proposal in DUO and enter its meta data into the SciCat DB
-# Use experiment_identifier or start_time in meta for association
-# There can be errors, there can be internal stuff. 
-        print('Dumping proposal')
+        print('Dumping proposal not needed, instead need to verify if already in SciCat')
 
-    def writeDataset(self,start,end, meta):
-# TODO :ingest a dataset ranging from start - end with meta data as in the meta dictionary
-        #for num in range(start,end):
-        #   fname = makeFilename(froot,2018,'sans',num,'hdf')
-        #   subtract froot from fname
-        #   append to file list
-        # print(meta)
-        print(json.dumps(meta, indent=3, sort_keys=True))
-        print('Dumping Dataset ranging from %d to %d' %(start,end))
+    def writeDataset(self, root, year, inst, postfix, start, end, scientificmeta, token):
+        # create filelisting file
 
-            # y['sourceFolder']=fullPath
-            #     # todo: this is only correct for single file datasets
-            #     y['size']=os.stat(fullPath).st_size
-            #     # correct for timezone
-            #     if 'file_time' in x:
-            #         y['creationTime'] = x['file_time']+'+01:00'
-            #     y['type']='raw'
-            #     y['license'] = 'CC BY-SA 4.0'
-            #     pprint(y)
-            #     dsResponse = swagger_client.DatasetApi().dataset_create(data=y)
-            #     print "Resulting pid:",dsResponse.pid
+        # TODO add year to root for sourceFolder ?
+        filelist = open('intermediate/filelisting-'+str(year)+'-'+str(start)+'.txt','w') 
+        for num in range(start,end):
+           fname = makeSINQrelFilename(int(year),inst,int(num),postfix)
+           print(fname)
+           filelist.write(fname)
+        filelist.close()
+ 
+        # print(scientificmeta)
+        proposalId='20.500.11935/'+scientificmeta['experiment_identifier'].replace(' ','')
+        print(proposalId)
 
-            #     raw={}
-            #     raw['id']=dsResponse.pid
-            #     if 'owner' in x:
-            #         raw['principalInvestigator']=x['owner']
-            #     else:
-            #         raw['principalInvestigator']='Unknown'
-            #     if 'file_time' in x:
-            #         raw['creationTime'] = x['file_time']+'+01:00'
-            #     if 'instrument' in x:
-            #         raw['creationLocation']='/PSI/SINQ/'+x['instrument']
-            #     if 'NeXus_version' in x:
-            #         raw['dataFormat']='NeXus_version '+x['NeXus_version']
-            #     raw['scientificMetadata']=x['entry1']
-            #     raw['datasetId']=dsResponse.pid
+        url='https://dacat-qa.psi.ch/api/v3/Proposals/'+urllib.parse.quote_plus(proposalId)+'?access_token='+token
+        r = requests.get(url)
+        if(r.status_code != 200):
+            print('Proposal Error Result:',url,r.text)
+        else:
+            proposal= json.loads(r.text)
+
+        # create metadata infos from data in proposal and scientific meta data
+
+            meta = {}
+            meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
+            meta['dataFormat'] = 'SANS-NEXUS-HDF5'
+            meta['sourceFolder'] = root
+            meta['owner']=proposal['firstname']+proposal['lastname']
+            meta['ownerEmail']=proposal['email']
+            meta['type']='raw'
+            # TODO decide what fields to add to description
+            meta['description']=proposal['title']+" "+scientificmeta['collection_description']+scientificmeta['title']
+            meta['ownerGroup']=proposal['ownerGroup']
+            meta['accessGroups']=proposal['accessGroups']
+            meta['proposalId']=proposalId
+            meta['scientificMetadata']=scientificmeta
+            # create metadata.json file
+            print('Dumping Dataset ranging from %d to %d' %(start,end))
+            metafile = open('intermediate/metadata-'+str(year)+'-'+str(start)+'.json','w') 
+            metafile.write(json.dumps(meta, indent=3, sort_keys=True))
+            metafile.close()
+            # TODO run datasetIngestor command
+
+ 
 
 

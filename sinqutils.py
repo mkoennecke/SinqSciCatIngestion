@@ -9,6 +9,10 @@ def makeSINQFilename(root,year,inst,numor,postfix):
     hundreds = abs(numor/1000)
     return '%s/%03d/%s%4dn%06d.%s' % (root,hundreds,inst,year,numor,postfix)
 
+def makeSINQrelFilename(year,inst,numor,postfix):
+    hundreds = abs(numor/1000)
+    return '%03d/%s%4dn%06d.%s' % (hundreds,inst,year,numor,postfix)
+
 
 """
    This class provides an iterator for iterating over SINQ data files. 

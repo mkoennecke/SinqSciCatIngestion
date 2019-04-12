@@ -11,12 +11,14 @@ from SciCat import SciCat
 from sinqutils import makeSINQFilename
 from instruments import readMetaData
 
-if len(sys.argv) < 2:
-    print('Usage:\n\tscingest.py spanlistfile')
+if len(sys.argv) < 3:
+    print('Usage:\n\tscingest.py span-results.txt token')
     sys.exit()
 
 
 scicat = SciCat()
+
+token = sys.argv[2]
 
 def loadMeta(numor):
     fname = makeSINQFilename(root,int(year),inst,int(numor),postfix)
@@ -39,10 +41,11 @@ with open(sys.argv[1],'r') as fin:
         elif ld[0] == 'DS':
             numor = int(ld[1])
             meta = loadMeta(numor-1)
-            scicat.writeDataset(dsstart,numor-1,meta)
+            # TODO end limit seems wrong ?
+            scicat.writeDataset(root, year, inst, postfix, dsstart, numor-1, meta, token)
             dsstart = numor
         else:
-            print('Unrecoginzed input ' + line)
+            print('Unrecognized input ' + line)
 
 
             
