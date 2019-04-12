@@ -43,7 +43,7 @@ def readMetaData(filename):
         raise NotImplemented
 
 def makeSignature(meta):
-    if meta['instrument'] == b'SANS':
+    if meta['instrument'] == 'SANS':
         return makeSANSSignature(meta)
     else:
         raise NotImplemented

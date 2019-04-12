@@ -22,8 +22,8 @@ import pdb
 inst = 'sans'
 year=2018
 start=1
-end=54677
-#end=2000
+#end=54677
+end=2000
 threshold = 10
 root='/afs/psi.ch/project/sinqdata/2018/sans'
 postfix = 'hdf'

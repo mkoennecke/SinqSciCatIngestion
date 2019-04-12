@@ -25,6 +25,7 @@ def loadMeta(numor):
     meta = readMetaData(fname.strip())
     return meta
 
+nextds = False
 with open(sys.argv[1],'r') as fin:
     for line in fin:
         ld = line.split(':')
@@ -41,8 +42,9 @@ with open(sys.argv[1],'r') as fin:
         elif ld[0] == 'DS':
             numor = int(ld[1])
             meta = loadMeta(numor-1)
-            # TODO end limit seems wrong ?
-            scicat.writeDataset(root, year, inst, postfix, dsstart, numor-1, meta, token)
+            if nextds: 
+                scicat.writeDataset(root, year, inst, postfix, dsstart, numor-1, meta, token)
+            nextds = True
             dsstart = numor
         else:
             print('Unrecognized input ' + line)
