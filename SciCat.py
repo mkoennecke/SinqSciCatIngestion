@@ -7,6 +7,7 @@ import json
 from sinqutils import makeSINQrelFilename
 import urllib.parse
 import requests
+import subprocess
 
 class SciCat(object):
     def writeProposal(self,meta):
@@ -18,7 +19,8 @@ class SciCat(object):
         # create filelisting file
 
         # TODO add year to root for sourceFolder ?
-        filelist = open('intermediate/filelisting-'+str(year)+'-'+str(start)+'.txt','w') 
+        filenameList='intermediate/filelisting-'+str(year)+'-'+str(start)+'.txt'
+        filelist = open(filenameList,'w') 
         for num in range(start,end+1):
            fname = makeSINQrelFilename(int(year),inst,int(num),postfix)
            print(fname)
@@ -47,17 +49,23 @@ class SciCat(object):
             meta['ownerEmail']=proposal['email']
             meta['type']='raw'
             # TODO decide what fields to add to description
-            meta['description']=proposal['title']+" "+scientificmeta['collection_description']+scientificmeta['title']
+            meta['description']=scientificmeta['title']+" / collection:"+scientificmeta['collection_description']
+            temp='undefined'
+            if 'temperature' in scientificmeta['sample']:
+                tempCandidate=scientificmeta['sample']['temperature']
+                if isinstance(tempCandidate, float):
+                    temp='%.1f' % tempCandidate
+               
+            meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']['name']+"-T="+temp
             meta['ownerGroup']=proposal['ownerGroup']
             meta['accessGroups']=proposal['accessGroups']
             meta['proposalId']=proposalId
             meta['scientificMetadata']=scientificmeta
             # create metadata.json file
-            metafile = open('intermediate/metadata-'+str(year)+'-'+str(start)+'.json','w') 
+            filenameMeta='intermediate/metadata-'+str(year)+'-'+str(start)+'.json'
+            metafile = open(filenameMeta,'w') 
             metafile.write(json.dumps(meta, indent=3, sort_keys=True))
             metafile.close()
-            # TODO run datasetIngestor command
-
- 
-
-
+            # run datasetIngestor command
+            subprocess.call(["./datasetIngestor","-testenv", "-ingest", "-allowexistingsource", "-token", token, filenameMeta, filenameList])
+             # todo remove files in "intermediate" folder
