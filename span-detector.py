@@ -13,8 +13,7 @@
 
    Mark Koennecke, April 2019 
 """
-from sinqutils import SinqFileList
-from instruments import readMetaData,makeSignature
+from sinqutils import SinqFileListfrom instruments import readMetaData,makeSignature
 from levenshtein import levenshtein
 import pdb
 
