@@ -114,26 +114,28 @@ def metaCompare(firstfile,secondfile):
     return diffs
 
 def isDiffSignificant(previous_diff,current_diff):
+    significant_fields = {'entry1/sample/magnetic_field': 10.,'entry1/sample/temperature':10.,}
     if previous_diff == None:
         # Just started: cannot say
         return False
     if len(current_diff) < 1:
-        # Nothing changed
+        # Little change
         return False
-    if abs(len(previous_diff) - len(current_diff)) >= 2:
-        # A lot changed
-        return True
     if isProposalChange(current_diff):
         return True
     if 'entry1/sample/name' in current_diff:
         return True
+    if abs(len(previous_diff) - len(current_diff)) >= 2:
+        # A lot changed
+        return True
     # Now compare the size of the differences against each other
     for key,val in current_diff.items():
         if key in previous_diff:
-            if abs(val-previous_diff[key]) > val:
+            if abs(val-previous_diff[key]) > 2*val:
                 return True
         else:
-            pass
+            if key in significant_fields and val > significant_fields[key]:
+                return True
     # Only incremental changes found
     return False
     
@@ -155,6 +157,8 @@ print('DS:%d ' %(numor))
 previous_diff = None
 previous_file = dfile
 for numor,dfile in fliter:
+    if numor == 80:
+        pdb.set_trace()
     diff = metaCompare(previous_file,dfile)
     if isDiffSignificant(previous_diff,diff):
         if isProposalChange(diff):
