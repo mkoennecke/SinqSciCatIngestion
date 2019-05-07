@@ -10,7 +10,7 @@
    like  many fields changing or very big differences, then a new dataset is assumed. Or, when the 
    proposal_id or the user changes, it is a proposal change. 
 
-   Mark Koennecke, April 2019 
+   Mark Koennecke, April-May 2019 
 """
 from sinqutils import SinqFileList
 from instruments import readMetaData,makeSignature
@@ -23,8 +23,8 @@ import pdb
 inst = 'sans'
 year=2018
 start=1
-#end=54677
-end=2000
+end=54677
+#end=12000
 threshold = 10
 root='/afs/psi.ch/project/sinqdata/2018/sans'
 postfix = 'hdf'
@@ -68,7 +68,7 @@ def compareDataset(in1, in2, path):
 #        print('Ignoring ' + path)
         return None
     if d2 is None:
-        print('Second misses path: ' +path)
+#        print('Second misses path: ' +path)
         return 'Missing'
     diff = testSpecial(d1,d2,path)
     if diff != None:
@@ -113,8 +113,16 @@ def metaCompare(firstfile,secondfile):
     f2.close()
     return diffs
 
+#------------------ Activate one of the two by renaming to printDebug
+def printDebugX(txt):
+    print('DBG ----- > ' + txt)
+
+def printDebug(txt):
+    pass
+
 def isDiffSignificant(previous_diff,current_diff):
-    significant_fields = {'entry1/sample/magnetic_field': 10.,'entry1/sample/temperature':10.,}
+    significant_fields = {'entry1/sample/magnetic_field': 10.,'entry1/sample/temperature':10.,
+                          'entry1/SANS/Dornier_VS/rotation_speed':30}
     if previous_diff == None:
         # Just started: cannot say
         return False
@@ -122,19 +130,43 @@ def isDiffSignificant(previous_diff,current_diff):
         # Little change
         return False
     if isProposalChange(current_diff):
+        printDebug('proposal change')
         return True
-    if 'entry1/sample/name' in current_diff:
+    # Sample name changes are only significant if no change in named_position
+    if 'entry1/sample/name' in current_diff and not 'entry1/sample/named_position' in current_diff:
+        printDebug('sample name change')
         return True
-    if abs(len(previous_diff) - len(current_diff)) >= 2:
-        # A lot changed
-        return True
-    # Now compare the size of the differences against each other
+    # A large number of changes is always an indicator of something serious happening
+    if len(current_diff) > len(previous_diff):
+        if len(current_diff) - len(previous_diff) > 2:
+            printDebug('Many changes triggered')
+            return True
+    # This is SANS: A change in collimation_length or detector position is always a new dataset 
+    trigger_fields = ['entry1/SANS/detector/x_position', 'entry1/SANS/collimator/length']
+    for trigger in trigger_fields:
+        if trigger in current_diff:
+            printDebug('Dataset trigger: ' + trigger)
+            return True
+    # The appearance of a new item changing by a largish amount also marks a new dataset
+    # Ignore the rotation_speed which has a large wobble
+    ignore_key = ['entry1/SANS/Dornier-VS/rotation_speed',]
     for key,val in current_diff.items():
-        if key in previous_diff:
-            if abs(val-previous_diff[key]) > 2*val:
-                return True
-        else:
-            if key in significant_fields and val > significant_fields[key]:
+        if key in ignore_key:
+            continue
+        if key not in previous_diff and abs(val) > 2.:
+            printDebug('A new changing key appeared: ' + key + ' val =  ' + str(val) )
+            return True
+    # Now compare the size of the differences against each other. A large change in a numeric value 
+    # also indicates a new experimental condition and thus a new dataset
+    to_ignore = ['entry1/title','entry1/sample/name','entry1/comment','entry1/sample/environment']
+    for key,val in current_diff.items():
+        if key in to_ignore:
+            continue
+        elif key in previous_diff:
+            if key in ignore_key:
+                continue
+            if abs(val-previous_diff[key]) > 2*val and val > 3.:
+                printDebug('Big change in parameter %s, val = %s ' % (key,str(val)))
                 return True
     # Only incremental changes found
     return False
@@ -157,8 +189,6 @@ print('DS:%d ' %(numor))
 previous_diff = None
 previous_file = dfile
 for numor,dfile in fliter:
-    if numor == 80:
-        pdb.set_trace()
     diff = metaCompare(previous_file,dfile)
     if isDiffSignificant(previous_diff,diff):
         if isProposalChange(diff):
