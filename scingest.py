@@ -13,6 +13,7 @@ from instruments import readMetaData
 
 if len(sys.argv) < 3:
     print('Usage:\n\tscingest.py span-results.txt token')
+    print('Please note: the datasetIngestor command must be in the PATH. The token should be the token generated for  e.g. sinqsans-i user')
     sys.exit()
 
 
@@ -33,7 +34,7 @@ with open(sys.argv[1],'r') as fin:
             root = ld[1]
             year = ld[2]
             inst = ld[3]
-            postfix = ld[4]
+            postfix = ld[4].strip()
         elif ld[0] == 'PROP':
             numor = int(ld[1])
             dsstart = numor
@@ -43,7 +44,8 @@ with open(sys.argv[1],'r') as fin:
             numor = int(ld[1])
             meta = loadMeta(numor-1)
             if nextds: 
-                scicat.writeDataset(root, year, inst, postfix, dsstart, numor-1, meta, token)
+                attachmentFile=scicat.createAttachmentFile(root, year, inst, postfix, dsstart)
+                scicat.writeDataset(root, year, inst, postfix, dsstart, numor-1, meta, token,attachmentFile)
             nextds = True
             dsstart = numor
         else:

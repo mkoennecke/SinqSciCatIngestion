@@ -4,16 +4,54 @@
    Mark Koennecke, April 2019 
 """
 import json 
+from sinqutils import makeSINQFilename
 from sinqutils import makeSINQrelFilename
 import urllib.parse
 import requests
 import subprocess
+import sys
+import numpy as np
+import matplotlib.pyplot as plt
+import h5py
+import os.path
+from matplotlib.colors import ListedColormap
 
 class SciCat(object):
     def writeProposal(self,meta):
         print('Dumping proposal not needed, instead need to verify if already in SciCat')
 
-    def writeDataset(self, root, year, inst, postfix, start, end, scientificmeta, token):
+    def createAttachmentFile(self, root, year, inst, postfix, start):
+        rainbow = np.ones((256,4))
+        rf = open('rainbow.rgb','r')
+        for i in range(0,256):
+            r = int(rf.readline())
+            g = int(rf.readline())
+            b = int(rf.readline())
+            # important enforce float values !
+            rainbow[i,0] = r/256.0
+            rainbow[i,1] = g/256.0
+            rainbow[i,2] = b/256.0
+        rf.close()
+
+        rainmap = ListedColormap(rainbow)
+        dfile = makeSINQFilename(root,int(year),inst,int(start),postfix)
+        f5 = h5py.File(dfile,'r')
+        ds = f5['entry1/data1/counts']
+        try:
+            plt.imshow(ds,rainmap)
+            # plt.show()
+            tmp = os.path.basename(dfile)
+            fname = 'intermediate/'+tmp + '.png'
+            print('Saved attachment image to ' + fname)
+            plt.savefig(fname)
+            plt.close()
+            f5.close()
+            return fname
+        except:
+            return ""
+
+
+    def writeDataset(self, root, year, inst, postfix, start, end, scientificmeta, token, attachmentFile):
 
         print('Dumping Dataset ranging from %d to %d' %(start,end))
         # create filelisting file
@@ -24,7 +62,7 @@ class SciCat(object):
         for num in range(start,end+1):
            fname = makeSINQrelFilename(int(year),inst,int(num),postfix)
            print(fname)
-           filelist.write(fname)
+           filelist.write(fname+"\n")
         filelist.close()
  
         # print(scientificmeta)
@@ -66,6 +104,11 @@ class SciCat(object):
             metafile = open(filenameMeta,'w') 
             metafile.write(json.dumps(meta, indent=3, sort_keys=True))
             metafile.close()
-            # run datasetIngestor command
-            subprocess.call(["./datasetIngestor","-testenv", "-ingest", "-allowexistingsource", "-token", token, filenameMeta, filenameList])
+
+            # run datasetIngestor command including attachments
+            if (attachmentFile !=""):
+                subprocess.call(["datasetIngestor","-addattachment", attachmentFile,"-testenv", "-ingest", "-allowexistingsource", "-token", token, filenameMeta, filenameList])
+            else:
+                subprocess.call(["datasetIngestor","-testenv", "-ingest", "-allowexistingsource", "-token", token, filenameMeta, filenameList])
+
              # todo remove files in "intermediate" folder
