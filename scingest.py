@@ -49,5 +49,3 @@ with open(sys.argv[1],'r') as fin:
         else:
             print('Unrecognized input ' + line)
 
-
-            
