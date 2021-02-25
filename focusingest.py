@@ -5,11 +5,13 @@ from sinqutils import SinqFileList, decodeHDF, pathExists, printMeta
 import h5py
 
 if len(sys.argv) < 3:
+    # TODO: this is now focusingest and not sansingest
     print('Usage:\n\t:sansingest.py year start end')
     sys.exit(1)
 
 # ================== Configuration
 
+# TODO: inst must also be changed to focus
 inst = 'sans'
 year = sys.argv[1]
 start = sys.argv[2]
@@ -30,12 +32,15 @@ def readFOCUS(filename):
      # todo normalize times to RFC format
     meta['end_time'] = decodeHDF(entry['end_time'][0])
     meta['instrument'] = 'FOCUS'
+    # TODO: not needed
     source = {}
     source['type'] = 'Spallation Neutron Source'
     source['probe'] = 'neutron'
     source['name'] = 'SINQ at PSI'
     meta['source'] = source
+    # end of not needed
     meta['wavelength'] = decodeHDF(entry['FOCUS/monochromator/lambda'][0])
+    # TODO: not needed, no collimator at FOCUS
     coll = {}
     coll['shape'] = 'nxcylinder'
     coll['size'] = decodeHDF(entry['SANS/collimator/length'][0])
@@ -52,20 +57,27 @@ def readFOCUS(filename):
         detector['beam_center_x'] = decodeHDF(entry['SANS/detector/beam_center_x'][0])*7.5
         detector['beam_center_y'] = decodeHDF(entry['SANS/detector/beam_center_y'][0])*7.5
     meta['detector'] = detector
+    # The whole detector business is not needed: also the path into the file would fall over miserably.
     sample = {}
     sample['name'] = decodeHDF(entry['sample/name'][0])
     sample['environment'] = decodeHDF(entry['sample/environment'][0])
+    # TODO: not needed
     sample['aequatorial_angle'] = 0.
+    # This is needed again
     sample['distance'] = decodeHDF(entry['sample/distance'][0])
     if pathExists(entry,'sample/temperature'.split('/')):
         sample['temperature'] = decodeHDF(entry['sample/temperature'][0])
     else:
         sample['temperature'] = 'UNKNOWN'
+    # TODO: check a number of files and see if you can find an entry for magnets.
+    # It coulkd also be that the name is magnetic_field.
     if pathExists(entry,'sample/magnet'.split('/')):
         sample['magnet'] = decodeHDF(entry['sample/magnet'][0])
     else:
         sample['magnet'] = 'UNKNOWN'
     meta['sample'] = sample
+    # TODO : flatten into main dictionary, find path for monitor 1 or control
+    # The paths in the file below will fall over.
     control = {}
     control['mode'] = decodeHDF(entry['SANS/detector/count_mode'][0])
     control['preset'] = decodeHDF(entry['SANS/detector/preset'][0])
@@ -77,7 +89,9 @@ def readFOCUS(filename):
     meta['user'] = decodeHDF(entry['user/name'][0])
     meta['email'] = decodeHDF(entry['user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
+    # Below has to go away: no attenuator at FOCUS
     # todo: commented because not existing: meta['attenuator'] = decodeHDF(entry['SANS/attenuator/selection'][0])
+    # TODO: This is good but I believe that Focus in the path below is written all in UPPERCASE
     meta['disk_chopper_speed'] = decodeHDF(entry['Focus/disk_chopper/rotation_speed'])
     meta['fermi_chopper_speed'] = decodeHDF(entry['Focus/fermi_chopper/rotation_speed'])
     f.close()
@@ -122,6 +136,8 @@ def writeDataset(numor, fname,  scientificmeta, token):
         meta['chopper_speeds'] = "disk chopper rotation speed:"+scientificmeta['disk_chopper_speed']+"fermi chopper rotation speed:"+scientificmeta['fermi_chopper_speed']
         meta['sample_distance'] = scientificmeta['sample']['distance']
         # TODO 2D flag -philip
+        # Comment from Mark: the 2D flag belongs into the scientific metadata. The flag can be derived from checking for the 
+        # existence of a focus2d group at entry level.   
 
         meta['principalInvestigator']=proposal['pi_email']
         meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
@@ -151,11 +167,15 @@ def writeDataset(numor, fname,  scientificmeta, token):
 sq = SinqFileList(fileroot, int(year), inst, 'hdf', start-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
+# TODO: Should that below not be readFOCUS?
 meta = readSANS(fname)
 # TODO: get a token
 proposal = meta['experiment_identifier']
 while fname:
+    # TODO: Should that below not be readFOCUS?
     meta = readSANS(fname)
+    # TODO By commenting away writeDatset() and uncommenting printMeta() you can 
+    # do a little test that the reading works OK. 
     # printMeta(numor, meta)
     writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)
