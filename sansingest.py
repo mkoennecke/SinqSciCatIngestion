@@ -80,44 +80,55 @@ def readSANS(filename):
     f.close()
     return meta
 
+def writeDataset(numor, fname,  scientificmeta, token):
 
-def createSciCatDictionary(, fileroot, fname, filemeta):
-    """fill in the dictionary for creating the ingestion json"""
-    meta = {}
-    # meta['principalInvestigator'] = proposal['pi_email']
-    # meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
-    meta['principalInvestigator'] = filemeta['user']
-    meta['creationLocation'] = 'SANS-I at SINQ, PSI'
-    meta['dataFormat'] = 'SANS-NEXUS-HDF5'
-    meta['sourceFolder'] = fileroot
-    # meta['owner'] = proposal['firstname'] + proposal['lastname']
-    # meta['ownerEmail'] = proposal['email']
-    meta['owner'] = filemeta['user']
-    meta['ownerEmail'] = filemeta['email']
-    meta['type'] = 'raw'
-    # TODO decide what fields to add to description
-    meta['description'] = filemeta['title'] + " / collection:" + filemeta['collection_description']
-    temp = 'undefined'
-    if 'temperature' in filemeta['sample']:
-        tempCandidate = filemeta['sample']['temperature']
-        if isinstance(tempCandidate, float):
-            temp = '%.1f' % tempCandidate
+        filenameList='intermediate/filelisting-'+str(numor)+'.txt'
+        filelist = open(filenameList,'w') 
+        filelist.write(fname)
+        filelist.close()
+ 
+        # print(scientificmeta)
+        proposalId='20.500.11935/'+scientificmeta['experiment_identifier'].replace(' ','')
+        print(proposalId)
 
-    # meta['datasetName'] = filemeta['user'] + "-" + filemeta['sample']['name'] + "-T=" + temp
-    meta['datasetName'] = os.path.basename(fname)
-    meta['ownerGroup'] = 'ownerGroup'
-    meta['accessGroups'] = 'accessGroups'
-    meta['proposalId'] = filemeta['experiment_identifier']
-    # meta['scientificMetadata'] = scientificmeta
-    # TODO: new dictionary with SANS  fields here
-    return meta
+        url='https://dacat-qa.psi.ch/api/v3/Proposals/'+urllib.parse.quote_plus(proposalId)+'?access_token='+token
+        r = requests.get(url)
+        if(r.status_code != 200):
+            print('Proposal Error Result:',url,r.text)
+        else:
+            proposal= json.loads(r.text)
 
-def ingestProposal(meta):
-    pass
+        # create metadata infos from data in proposal and scientific meta data
 
-
-def ingestDataset(meta):
-    pass
+            meta = {}
+            meta['principalInvestigator']=proposal['pi_email']
+            meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
+            meta['dataFormat'] = 'SANS-NEXUS-HDF5'
+            meta['sourceFolder'] = root
+            meta['owner']=proposal['firstname']+proposal['lastname']
+            meta['ownerEmail']=proposal['email']
+            meta['type']='raw'
+            # TODO decide what fields to add to description
+            meta['description']=scientificmeta['title']+" / collection:"+scientificmeta['collection_description']
+            temp='undefined'
+            if 'temperature' in scientificmeta['sample']:
+                tempCandidate=scientificmeta['sample']['temperature']
+                if isinstance(tempCandidate, float):
+                    temp='%.1f' % tempCandidate
+               
+            meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']['name']+"-T="+temp
+            meta['ownerGroup']=proposal['ownerGroup']
+            meta['accessGroups']=proposal['accessGroups']
+            meta['proposalId']=proposalId
+            meta['scientificMetadata']=scientificmeta
+            # create metadata.json file
+            filenameMeta='intermediate/metadata-'+str(year)+'-'+str(start)+'.json'
+            metafile = open(filenameMeta,'w') 
+            metafile.write(json.dumps(meta, indent=3, sort_keys=True))
+            metafile.close()
+            # run datasetIngestor command
+            subprocess.call(["./datasetIngestor","-testenv", "-ingest", "-allowexistingsource", "-token", token, filenameMeta, filenameList])
+             # todo remove files in "intermediate" folder
 
 
 # ======================== main loop ===========================
@@ -125,14 +136,12 @@ sq = SinqFileList(fileroot, int(year), inst, 'hdf', start-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
 meta = readSANS(fname)
+# TODO: get a token
 proposal = meta['experiment_identifier']
 while fname:
     meta = readSANS(fname)
     # printMeta(numor, meta)
-    if meta['experiment_identifier'] != proposal:
-        # ingestProposal(meta)
-        proposal = meta['experiment_identifier']
-    ingestDataset(meta)
+    writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)
 
 
