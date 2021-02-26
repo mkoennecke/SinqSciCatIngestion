@@ -15,7 +15,7 @@ year = sys.argv[1]
 start = sys.argv[2]
 end = sys.argv[3]
 
-fileroot = 'test/sans'
+fileroot = 'test/focus'
 
 # ------------- reading Data from FOCUS files
 
@@ -32,13 +32,10 @@ def readFOCUS(filename):
     meta['instrument'] = 'FOCUS'
 
     meta['wavelength'] = decodeHDF(entry['FOCUS/monochromator/lambda'][0])
-    meta['collimator'] = coll
     if pathExists(entry,'focus2d'):
-        meta['focus2d_counts'] = decodeHDF(entry['focus2d/counts'])
-        meta['focus2d_time_binning'] = decodeHDF(entry['focus2d/time_binning'])
+        meta['2ddetector'] = 'yes'
     else:
-        meta['focus2d_counts'] ='UNKNOWN'
-        meta['focus2d_time_binning'] ='UNKNOWN'
+        meta['2ddetector'] = 'no'
     sample = {}
     sample['name'] = decodeHDF(entry['sample/name'][0])
     sample['environment'] = decodeHDF(entry['sample/environment'][0])
@@ -54,13 +51,14 @@ def readFOCUS(filename):
     else:
         sample['magnet'] = 'UNKNOWN'
     meta['sample'] = sample
-    # TODO : flatten into main dictionary, find path for monitor 1 or control
-    control = {}
+    # TODO
+    meta['monitor'] = 27.
     meta['user'] = decodeHDF(entry['user/name'][0])
     meta['email'] = decodeHDF(entry['user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
     meta['disk_chopper_speed'] = decodeHDF(entry['FOCUS/disk_chopper/rotation_speed'])
     meta['fermi_chopper_speed'] = decodeHDF(entry['FOCUS/fermi_chopper/rotation_speed'])
+    # TODO: ratio und phase
     f.close()
     return meta
 
@@ -87,7 +85,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         meta = {}
         meta['file_time'] = "start time:"+scientificmeta['start_time']+"end time:"+scientificmeta['end_time']
         meta['instrument'] = scientificmeta['instrument']
-        meta['owner']=proposal['firstname']+proposal['lastname']
+        meta['owner']=proposal['firstname']+ ' ' + proposal['lastname']
         meta['ownerEmail']=proposal['email']
         meta['title'] = scientificmeta['title']
         meta['sample name'] = scientificmeta['sample']['name']
@@ -101,6 +99,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         meta['wavelength'] = scientificmeta['wavelength']
         meta['chopper_speeds'] = "disk chopper rotation speed:"+scientificmeta['disk_chopper_speed']+"fermi chopper rotation speed:"+scientificmeta['fermi_chopper_speed']
         meta['sample_distance'] = scientificmeta['sample']['distance']
+        # TODO
         meta['focus2d_counts'] = scientificmeta['focus2d_counts']
         meta['focus2d_time_binning'] = scientificmeta['focus2d_time_binning']
         # Comment from Mark: the 2D flag belongs into the scientific metadata. The flag can be derived from checking for the 
@@ -131,7 +130,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
 
 
 # ======================== main loop ===========================
-sq = SinqFileList(fileroot, int(year), inst, 'hdf', start-1, end)
+sq = SinqFileList(fileroot, int(year), inst, 'hdf', start, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
 meta = readFOCUS(fname)
@@ -141,8 +140,8 @@ while fname:
     meta = readFOCUS(fname)
     # TODO By commenting away writeDatset() and uncommenting printMeta() you can 
     # do a little test that the reading works OK. 
-    # printMeta(numor, meta)
-    writeDataset(numo, fname, meta, token)
+    printMeta(numor, meta)
+    # writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)
 
 
