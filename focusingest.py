@@ -139,6 +139,8 @@ meta = readFOCUS(fname)
 proposal = meta['experiment_identifier']
 while fname:
     meta = readFOCUS(fname)
+    # TODO By commenting away writeDatset() and uncommenting printMeta() you can 
+    # do a little test that the reading works OK. 
     # printMeta(numor, meta)
     writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)
