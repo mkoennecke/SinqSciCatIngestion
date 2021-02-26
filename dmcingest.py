@@ -5,21 +5,21 @@ from sinqutils import SinqFileList, decodeHDF, pathExists, printMeta
 import h5py
 
 if len(sys.argv) < 3:
-    print('Usage:\n\t:focusingest.py year start end')
+    print('Usage:\n\t:dmcingest.py year start end')
     sys.exit(1)
 
 # ================== Configuration
 
-inst = 'focus'
+inst = 'dmc'
 year = sys.argv[1]
 start = sys.argv[2]
 end = sys.argv[3]
 
 fileroot = 'test/sans'
 
-# ------------- reading Data from FOCUS files
+# ------------- reading Data from DMC files
 
-def readFOCUS(filename):
+def readDMC(filename):
     f = h5py.File(filename, 'r')
     meta = {}
     entry = f['entry1']
@@ -29,38 +29,31 @@ def readFOCUS(filename):
     meta['start_time'] = decodeHDF(entry['start_time'][0])
      # todo normalize times to RFC format
     meta['end_time'] = decodeHDF(entry['end_time'][0])
-    meta['instrument'] = 'FOCUS'
-
-    meta['wavelength'] = decodeHDF(entry['FOCUS/monochromator/lambda'][0])
-    meta['collimator'] = coll
-    if pathExists(entry,'focus2d'):
-        meta['focus2d_counts'] = decodeHDF(entry['focus2d/counts'])
-        meta['focus2d_time_binning'] = decodeHDF(entry['focus2d/time_binning'])
-    else:
-        meta['focus2d_counts'] ='UNKNOWN'
-        meta['focus2d_time_binning'] ='UNKNOWN'
+    meta['instrument'] = 'DMC'
+    meta['wavelength'] = decodeHDF(entry['DMC/Monochromator/lambda'][0])
+    meta['detector two_theta start'] = decodeHDF(entry['DMC/DMC-BF3-Detector/two_theta_start'][0])
+    meta['proton_monitor'] = decodeHDF(entry['DMC/DMC-BF3-Detector/proton_monitor'])
+    meta['summed counts'] = decodeHDF(entry['data1/counts'])
+    if pathExists(entry,'SANS/detector/beam_center_x'.split('/')):
+        detector['beam_center_x'] = decodeHDF(entry['SANS/detector/beam_center_x'][0])*7.5
+        detector['beam_center_y'] = decodeHDF(entry['SANS/detector/beam_center_y'][0])*7.5
+    meta['detector'] = detector
     sample = {}
-    sample['name'] = decodeHDF(entry['sample/name'][0])
-    sample['environment'] = decodeHDF(entry['sample/environment'][0])
-    sample['distance'] = decodeHDF(entry['sample/distance'][0])
+    sample['name'] = decodeHDF(entry['sample/sample_name'][0])    
+    # sample['sample_changer position'] = decodeHDF(entry['sample/sample_changer_position'])
+    sample['sample rotation'] = decodeHDF(entry['sample/sample_table_rotation'])
     if pathExists(entry,'sample/temperature'.split('/')):
         sample['temperature'] = decodeHDF(entry['sample/temperature'][0])
     else:
         sample['temperature'] = 'UNKNOWN'
-    # TODO: check a number of files and see if you can find an entry for magnets.
-    # It coulkd also be that the name is magnetic_field.    
     if pathExists(entry,'sample/magnet'.split('/')):
         sample['magnet'] = decodeHDF(entry['sample/magnet'][0])
     else:
         sample['magnet'] = 'UNKNOWN'
     meta['sample'] = sample
-    # TODO : flatten into main dictionary, find path for monitor 1 or control
-    control = {}
     meta['user'] = decodeHDF(entry['user/name'][0])
     meta['email'] = decodeHDF(entry['user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
-    meta['disk_chopper_speed'] = decodeHDF(entry['FOCUS/disk_chopper/rotation_speed'])
-    meta['fermi_chopper_speed'] = decodeHDF(entry['FOCUS/fermi_chopper/rotation_speed'])
     f.close()
     return meta
 
@@ -95,16 +88,21 @@ def writeDataset(numor, fname,  scientificmeta, token):
             tempCandidate=scientificmeta['sample']['temperature']
             if isinstance(tempCandidate, float):
                 temp='%.1f' % tempCandidate
-        # FOCUS specific
-        meta['environment'] = scientificmeta['sample']['environment']
-        # check data for wavelength and chopper_speeds -philip
+        # Magnetfeld? -philip 
+        if 'magfield' in scientificmeta['sample']:
+            magCandidate = scientificmeta['sample']['magfield']
+            if isinstance(magfield, float):
+                mag='%.1f' % magCandidate
+        # POLDI specific
         meta['wavelength'] = scientificmeta['wavelength']
-        meta['chopper_speeds'] = "disk chopper rotation speed:"+scientificmeta['disk_chopper_speed']+"fermi chopper rotation speed:"+scientificmeta['fermi_chopper_speed']
-        meta['sample_distance'] = scientificmeta['sample']['distance']
-        meta['focus2d_counts'] = scientificmeta['focus2d_counts']
-        meta['focus2d_time_binning'] = scientificmeta['focus2d_time_binning']
-        # Comment from Mark: the 2D flag belongs into the scientific metadata. The flag can be derived from checking for the 
-        # existence of a focus2d group at entry level. 
+        meta['detector two_theta start'] = scientificmeta['detector two_theta start']
+        # sample monitor
+        meta['proton_monitor'] = scientificmeta['proton_monitor']
+        meta['sample_changer position'] = scientificmeta['sample_changer position']
+        meta['sample rotation'] = scientificmeta['sample rotation']
+        meta['summed counts'] = scientificmeta['summed counts']
+
+
 
         meta['principalInvestigator']=proposal['pi_email']
         meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
@@ -134,11 +132,11 @@ def writeDataset(numor, fname,  scientificmeta, token):
 sq = SinqFileList(fileroot, int(year), inst, 'hdf', start-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
-meta = readFOCUS(fname)
+meta = readDMC(fname)
 # TODO: get a token
 proposal = meta['experiment_identifier']
 while fname:
-    meta = readFOCUS(fname)
+    meta = readDMC(fname)
     # printMeta(numor, meta)
     writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)

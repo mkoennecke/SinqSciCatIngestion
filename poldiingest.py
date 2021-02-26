@@ -5,21 +5,21 @@ from sinqutils import SinqFileList, decodeHDF, pathExists, printMeta
 import h5py
 
 if len(sys.argv) < 3:
-    print('Usage:\n\t:focusingest.py year start end')
+    print('Usage:\n\t:poldiingest.py year start end')
     sys.exit(1)
 
 # ================== Configuration
 
-inst = 'focus'
+inst = 'poldi'
 year = sys.argv[1]
 start = sys.argv[2]
 end = sys.argv[3]
 
 fileroot = 'test/sans'
 
-# ------------- reading Data from FOCUS files
+# ------------- reading Data from POLDI files
 
-def readFOCUS(filename):
+def readPOLDI(filename):
     f = h5py.File(filename, 'r')
     meta = {}
     entry = f['entry1']
@@ -29,38 +29,24 @@ def readFOCUS(filename):
     meta['start_time'] = decodeHDF(entry['start_time'][0])
      # todo normalize times to RFC format
     meta['end_time'] = decodeHDF(entry['end_time'][0])
-    meta['instrument'] = 'FOCUS'
-
-    meta['wavelength'] = decodeHDF(entry['FOCUS/monochromator/lambda'][0])
-    meta['collimator'] = coll
-    if pathExists(entry,'focus2d'):
-        meta['focus2d_counts'] = decodeHDF(entry['focus2d/counts'])
-        meta['focus2d_time_binning'] = decodeHDF(entry['focus2d/time_binning'])
-    else:
-        meta['focus2d_counts'] ='UNKNOWN'
-        meta['focus2d_time_binning'] ='UNKNOWN'
+    meta['instrument'] = 'POLDI'
     sample = {}
     sample['name'] = decodeHDF(entry['sample/name'][0])
     sample['environment'] = decodeHDF(entry['sample/environment'][0])
-    sample['distance'] = decodeHDF(entry['sample/distance'][0])
     if pathExists(entry,'sample/temperature'.split('/')):
         sample['temperature'] = decodeHDF(entry['sample/temperature'][0])
     else:
         sample['temperature'] = 'UNKNOWN'
-    # TODO: check a number of files and see if you can find an entry for magnets.
-    # It coulkd also be that the name is magnetic_field.    
     if pathExists(entry,'sample/magnet'.split('/')):
         sample['magnet'] = decodeHDF(entry['sample/magnet'][0])
     else:
         sample['magnet'] = 'UNKNOWN'
     meta['sample'] = sample
-    # TODO : flatten into main dictionary, find path for monitor 1 or control
-    control = {}
     meta['user'] = decodeHDF(entry['user/name'][0])
     meta['email'] = decodeHDF(entry['user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
-    meta['disk_chopper_speed'] = decodeHDF(entry['FOCUS/disk_chopper/rotation_speed'])
-    meta['fermi_chopper_speed'] = decodeHDF(entry['FOCUS/fermi_chopper/rotation_speed'])
+    # todo: commented because not existing: meta['attenuator'] = decodeHDF(entry['SANS/attenuator/selection'][0])
+    meta['chopper_speed'] = decodeHDF(entry['POLDI/chopper/rotation_speed'])
     f.close()
     return meta
 
@@ -83,7 +69,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         proposal= json.loads(r.text)
 
     # create metadata infos from data in proposal and scientific meta data
-        # all instruments
+
         meta = {}
         meta['file_time'] = "start time:"+scientificmeta['start_time']+"end time:"+scientificmeta['end_time']
         meta['instrument'] = scientificmeta['instrument']
@@ -91,30 +77,26 @@ def writeDataset(numor, fname,  scientificmeta, token):
         meta['ownerEmail']=proposal['email']
         meta['title'] = scientificmeta['title']
         meta['sample name'] = scientificmeta['sample']['name']
+        temp='undefined'
         if 'temperature' in scientificmeta['sample']:
             tempCandidate=scientificmeta['sample']['temperature']
             if isinstance(tempCandidate, float):
                 temp='%.1f' % tempCandidate
-        # FOCUS specific
+        
+        # POLDI specific
         meta['environment'] = scientificmeta['sample']['environment']
-        # check data for wavelength and chopper_speeds -philip
-        meta['wavelength'] = scientificmeta['wavelength']
-        meta['chopper_speeds'] = "disk chopper rotation speed:"+scientificmeta['disk_chopper_speed']+"fermi chopper rotation speed:"+scientificmeta['fermi_chopper_speed']
-        meta['sample_distance'] = scientificmeta['sample']['distance']
-        meta['focus2d_counts'] = scientificmeta['focus2d_counts']
-        meta['focus2d_time_binning'] = scientificmeta['focus2d_time_binning']
-        # Comment from Mark: the 2D flag belongs into the scientific metadata. The flag can be derived from checking for the 
-        # existence of a focus2d group at entry level. 
+        meta['chopper_speed'] = scientificmeta['chopper_speed']
 
         meta['principalInvestigator']=proposal['pi_email']
         meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
-        meta['dataFormat'] = 'FOCUS-NEXUS-HDF5'
+        meta['dataFormat'] = 'SANS-NEXUS-HDF5'
         meta['sourceFolder'] = root
+        meta['owner']=proposal['firstname']+proposal['lastname']
+        meta['ownerEmail']=proposal['email']
         meta['type']='raw'
         # TODO decide what fields to add to description
         meta['description']=scientificmeta['title']+" / collection:"+scientificmeta['collection_description']
-        temp='undefined'
-            
+
         meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']['name']+"-T="+temp
         meta['ownerGroup']=proposal['ownerGroup']
         meta['accessGroups']=proposal['accessGroups']
@@ -134,11 +116,11 @@ def writeDataset(numor, fname,  scientificmeta, token):
 sq = SinqFileList(fileroot, int(year), inst, 'hdf', start-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
-meta = readFOCUS(fname)
+meta = readPOLDI(fname)
 # TODO: get a token
 proposal = meta['experiment_identifier']
 while fname:
-    meta = readFOCUS(fname)
+    meta = readPOLDI(fname)
     # printMeta(numor, meta)
     writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)
