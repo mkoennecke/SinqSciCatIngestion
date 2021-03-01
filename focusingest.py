@@ -51,14 +51,14 @@ def readFOCUS(filename):
     else:
         sample['magnet'] = 'UNKNOWN'
     meta['sample'] = sample
-    # TODO
-    meta['monitor'] = 27.
+    meta['monitor'] = decodeHDF(entry['FOCUS/counter/monitor'])
     meta['user'] = decodeHDF(entry['user/name'][0])
     meta['email'] = decodeHDF(entry['user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
     meta['disk_chopper_speed'] = decodeHDF(entry['FOCUS/disk_chopper/rotation_speed'])
     meta['fermi_chopper_speed'] = decodeHDF(entry['FOCUS/fermi_chopper/rotation_speed'])
-    # TODO: ratio und phase
+    meta['disk_chopper_ratio'] = decodeHDF(entry['FOCUS/disk_chopper/ratio'])
+    meta['fermi_chopper_phase'] = decodeHDF(entry['FOCUS/fermi_chopper/phase'])
     f.close()
     return meta
 
@@ -85,7 +85,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         meta = {}
         meta['file_time'] = "start time:"+scientificmeta['start_time']+"end time:"+scientificmeta['end_time']
         meta['instrument'] = scientificmeta['instrument']
-        meta['owner']=proposal['firstname']+ ' ' + proposal['lastname']
+        meta['owner']=proposal['firstname']+ ' ' +proposal['lastname']
         meta['ownerEmail']=proposal['email']
         meta['title'] = scientificmeta['title']
         meta['sample name'] = scientificmeta['sample']['name']
@@ -93,17 +93,15 @@ def writeDataset(numor, fname,  scientificmeta, token):
             tempCandidate=scientificmeta['sample']['temperature']
             if isinstance(tempCandidate, float):
                 temp='%.1f' % tempCandidate
+        meta['monitor'] = scientificmeta['monitor']
         # FOCUS specific
         meta['environment'] = scientificmeta['sample']['environment']
-        # check data for wavelength and chopper_speeds -philip
         meta['wavelength'] = scientificmeta['wavelength']
-        meta['chopper_speeds'] = "disk chopper rotation speed:"+scientificmeta['disk_chopper_speed']+"fermi chopper rotation speed:"+scientificmeta['fermi_chopper_speed']
+        meta['chopper_speeds'] = "disk chopper rotation speed:"+scientificmeta['disk_chopper_speed']+" fermi chopper rotation speed:"+scientificmeta['fermi_chopper_speed']
+        meta['chopper_ratio'] = scientificmeta['disk_chopper_ratio']
+        meta['chopper_phase'] = scientificmeta['fermi_chopper_phase']
         meta['sample_distance'] = scientificmeta['sample']['distance']
-        # TODO
-        meta['focus2d_counts'] = scientificmeta['focus2d_counts']
-        meta['focus2d_time_binning'] = scientificmeta['focus2d_time_binning']
-        # Comment from Mark: the 2D flag belongs into the scientific metadata. The flag can be derived from checking for the 
-        # existence of a focus2d group at entry level. 
+        meta['focus2d'] = scientificmeta['focus2d']
 
         meta['principalInvestigator']=proposal['pi_email']
         meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
