@@ -3,6 +3,10 @@ import sys
 import os
 from sinqutils import SinqFileList, decodeHDF, pathExists, printMeta
 import h5py
+import urllib
+import requests
+import pdb
+
 
 if len(sys.argv) < 3:
     print('Usage:\n\t:focusingest.py year start end')
@@ -14,8 +18,10 @@ inst = 'focus'
 year = sys.argv[1]
 start = sys.argv[2]
 end = sys.argv[3]
+token = 'UyLc24iwddae3KxPMdRiZ7GybWsm8l8wS8VwTR9nXeEJ8rGN64ygUKxTFkAC9x4S'
 
-fileroot = 'test/focus'
+fileroot = '/afs/psi.ch/project/sinqdata/%s/focus' % (year)
+
 
 # ------------- reading Data from FOCUS files
 
