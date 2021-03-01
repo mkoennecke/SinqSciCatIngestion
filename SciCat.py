@@ -104,7 +104,6 @@ class SciCat(object):
             metafile = open(filenameMeta,'w') 
             metafile.write(json.dumps(meta, indent=3, sort_keys=True))
             metafile.close()
-
             # run datasetIngestor command including attachments
             if (attachmentFile !=""):
                 subprocess.call(["datasetIngestor","-addattachment", attachmentFile,"-testenv", "-ingest", "-allowexistingsource", "-token", token, filenameMeta, filenameList])
@@ -112,3 +111,4 @@ class SciCat(object):
                 subprocess.call(["datasetIngestor","-testenv", "-ingest", "-allowexistingsource", "-token", token, filenameMeta, filenameList])
 
              # todo remove files in "intermediate" folder
+
