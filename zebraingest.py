@@ -31,12 +31,22 @@ def readZEBRA(filename):
         dataset = ["date", "instrument", "user" , "proposal_email", "title", "sample", "temperature", "ProposalID", "stt", "chi", "phi", "om", "nu"]
         x = 0
         for line in f:
+            # Philip: I wonder if this can work at all. Did you debug this?
             for data in dataset:
                 extractedData = line.split('=')
                 if (data in extractedData[0] and len(extractedData) > 1):
                     meta[extractedData[0]] = extractedData[1]
         meta['detector_mode'] = '1d'        
         f.close()
+        # Philip: my suggestion for this section:
+        # for line in f:
+        #   if line.startswith('#data'):
+        #      break # Nicht noetig durch alle Daten zu suchen
+        #   extractedData = line.split('=')
+        #   if len(extractedData) == 2:
+        #       key = extractedData[0].strip() # Weg mit unnoetigen whitespace!
+        #       if key in dataset:
+        #          meta[key] = extractedData[1].strip()
 
     elif(filename.endswith(hdfsuffix)):
         print('read data')
