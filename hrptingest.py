@@ -99,6 +99,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         meta['proton_monitor'] = scientificmeta['proton_monitor']
         meta['sample_changer position'] = scientificmeta['sample_changer position']
         meta['sample rotation'] = scientificmeta['sample rotation']
+        # check summed counts
         meta['summed counts'] = scientificmeta['summed counts']
         meta['position_monochromator_lift'] = scientificmeta['position_monochromator_lift']
 

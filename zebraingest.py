@@ -24,22 +24,22 @@ def readZEBRA(filename):
     cclsuffix = '.ccl'
     datsuffix = '.dat'
     hdfsuffix = '.hdf'
-    print(filename)
     meta = {}
     if(filename.endswith(cclsuffix) or filename.endswith(datsuffix)):
         f = open(filename, 'r')
         dataset = ["date", "instrument", "user" , "proposal_email", "title", "sample", "temperature", "ProposalID", "stt", "chi", "phi", "om", "nu"]
-        x = 0
         for line in f:
-            for data in dataset:
-                extractedData = line.split('=')
-                if (data in extractedData[0] and len(extractedData) > 1):
-                    meta[extractedData[0]] = extractedData[1]
+            if line.startswith('#data'):
+                break
+            extractedData = line.split('=')
+            if len(extractedData) == 2:
+                key = extractedData[0].strip()
+                if key in dataset:
+                    meta[key] = extractedData[1].strip()
         meta['detector_mode'] = '1d'        
         f.close()
 
     elif(filename.endswith(hdfsuffix)):
-        print('read data')
         f = h5py.File(filename, 'r')
         entry = f['entry1']
         meta['title'] = decodeHDF(entry['title'][0])
@@ -69,6 +69,7 @@ def readZEBRA(filename):
         meta['phi'] = decodeHDF(entry['sample/phi'][0])
         # om, nu
         f.close()
+    return meta
 
 
 def writeDataset(numor, fname,  scientificmeta, token):
@@ -128,9 +129,34 @@ def writeDataset(numor, fname,  scientificmeta, token):
 sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
+if os.path.exists(fname):
+    print('hdf file found')
+else:
+    fname = fname.replace(".hdf", ".ccl")
+    if os.path.exists(fname):
+        print('ccl file found')
+    else:
+        fname = fname.replace(".ccl", ".dat")
+        if os.path.exists(fname):
+            print('dat file found')
+        else:
+            print('datatype unknown')
+
 meta = readZEBRA(fname)
 # TODO: get a token
 while fname:
+    if os.path.exists(fname):
+        print('hdf file found')
+    else:
+        fname = fname.replace(".hdf", ".ccl")
+        if os.path.exists(fname):
+            print('ccl file found')
+        else:
+            fname = fname.replace(".ccl", ".dat")
+            if os.path.exists(fname):
+                print('dat file found')
+            else:
+                print('datatype unknown')
     meta = readZEBRA(fname)
     # TODO By commenting away writeDatset() and uncommenting printMeta() you can 
     # do a little test that the reading works OK. 

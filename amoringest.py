@@ -31,10 +31,13 @@ def readAMOR(filename):
         f = open(filename, 'r')
         x = 0
         for line in f:
-            for data in dataset:
-                extractedData = line.split('=')
-                if (data in extractedData[0] and len(extractedData) > 1):
-                    meta[extractedData[0]] = extractedData[1]
+            if line.startswith('#data'):
+                break
+            extractedData = line.split('=')
+            if len(extractedData) == 2:
+                key = extractedData[0].strip()
+                if key in dataset:
+                    meta[key] = extractedData[1].strip()
         meta['detector_mode'] = '1d'        
         f.close()
 
@@ -63,6 +66,7 @@ def readAMOR(filename):
         meta['email'] = decodeHDF(entry['proposal_user/email'][0])
         meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
         f.close()
+    return meta
 
 
 def writeDataset(numor, fname,  scientificmeta, token):
@@ -116,9 +120,33 @@ def writeDataset(numor, fname,  scientificmeta, token):
 sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
+if os.path.exists(fname):
+    print('hdf file found')
+else:
+    fname = fname.replace(".hdf", ".ccl")
+    if os.path.exists(fname):
+        print('ccl file found')
+    else:
+        fname = fname.replace(".ccl", ".dat")
+        if os.path.exists(fname):
+            print('dat file found')
+        else:
+            print('datatype unknown')
 meta = readAMOR(fname)
 # TODO: get a token
 while fname:
+    if os.path.exists(fname):
+        print('hdf file found')
+    else:
+        fname = fname.replace(".hdf", ".ccl")
+        if os.path.exists(fname):
+            print('ccl file found')
+        else:
+            fname = fname.replace(".ccl", ".dat")
+            if os.path.exists(fname):
+                print('dat file found')
+            else:
+                print('datatype unknown')
     meta = readAMOR(fname)
     # TODO By commenting away writeDatset() and uncommenting printMeta() you can 
     # do a little test that the reading works OK. 

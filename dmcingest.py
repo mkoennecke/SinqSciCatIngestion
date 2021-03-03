@@ -28,16 +28,11 @@ def readDMC(filename):
     # todo normalize times to RFC format
     meta['start_time'] = decodeHDF(entry['start_time'][0])
      # todo normalize times to RFC format
-    meta['end_time'] = decodeHDF(entry['end_time'][0])
     meta['instrument'] = 'DMC'
     meta['wavelength'] = decodeHDF(entry['DMC/Monochromator/lambda'][0])
     meta['detector two_theta start'] = decodeHDF(entry['DMC/DMC-BF3-Detector/two_theta_start'][0])
     meta['proton_monitor'] = decodeHDF(entry['DMC/DMC-BF3-Detector/proton_monitor'][0])
     meta['summed counts'] = decodeHDF(entry['data1/counts'][0])
-    if pathExists(entry,'SANS/detector/beam_center_x'.split('/')):
-        detector['beam_center_x'] = decodeHDF(entry['SANS/detector/beam_center_x'][0])*7.5
-        detector['beam_center_y'] = decodeHDF(entry['SANS/detector/beam_center_y'][0])*7.5
-    meta['detector'] = detector
     sample = {}
     sample['name'] = decodeHDF(entry['sample/sample_name'][0])    
     if pathExists(entry,'sample/sample_changer_position'.split('/')):
@@ -55,7 +50,7 @@ def readDMC(filename):
         sample['magnet'] = 'UNKNOWN'
     meta['sample'] = sample
     meta['user'] = decodeHDF(entry['user/name'][0])
-    meta['email'] = decodeHDF(entry['user/email'][0])
+    meta['email'] = decodeHDF(entry['proposal_user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
     f.close()
     return meta
@@ -81,7 +76,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
     # create metadata infos from data in proposal and scientific meta data
         # all instruments
         meta = {}
-        meta['file_time'] = "start time:"+scientificmeta['start_time']+"end time:"+scientificmeta['end_time']
+        meta['file_time'] = scientificmeta['start_time']
         meta['instrument'] = scientificmeta['instrument']
         meta['owner']=proposal['firstname']+proposal['lastname']
         meta['ownerEmail']=proposal['email']
@@ -133,7 +128,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
 
 
 # ======================== main loop ===========================
-sq = SinqFileList(fileroot, int(year), inst, 'hdf', start-1, end)
+sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
 meta = readDMC(fname)
@@ -141,8 +136,8 @@ meta = readDMC(fname)
 proposal = meta['experiment_identifier']
 while fname:
     meta = readDMC(fname)
-    # printMeta(numor, meta)
-    writeDataset(numo, fname, meta, token)
+    printMeta(numor, meta)
+    # writeDataset(numor, fname, meta, token)
     numor, fname = next(sqiter)
 
 
