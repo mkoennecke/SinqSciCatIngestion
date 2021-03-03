@@ -15,7 +15,7 @@ year = sys.argv[1]
 start = sys.argv[2]
 end = sys.argv[3]
 
-fileroot = 'test/sans'
+fileroot = 'test/poldi'
 
 # ------------- reading Data from POLDI files
 
@@ -43,10 +43,10 @@ def readPOLDI(filename):
         sample['magnet'] = 'UNKNOWN'
     meta['sample'] = sample
     meta['user'] = decodeHDF(entry['user/name'][0])
-    meta['email'] = decodeHDF(entry['user/email'][0])
+    meta['email'] = decodeHDF(entry['proposal_user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
     # todo: commented because not existing: meta['attenuator'] = decodeHDF(entry['SANS/attenuator/selection'][0])
-    meta['chopper_speed'] = decodeHDF(entry['POLDI/chopper/rotation_speed'])
+    meta['chopper_speed'] = decodeHDF(entry['POLDI/chopper/rotation_speed'][0])
     f.close()
     return meta
 
@@ -113,7 +113,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
 
 
 # ======================== main loop ===========================
-sq = SinqFileList(fileroot, int(year), inst, 'hdf', start-1, end)
+sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
 meta = readPOLDI(fname)
@@ -121,8 +121,8 @@ meta = readPOLDI(fname)
 proposal = meta['experiment_identifier']
 while fname:
     meta = readPOLDI(fname)
-    # printMeta(numor, meta)
-    writeDataset(numo, fname, meta, token)
+    printMeta(numor, meta)
+    # writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)
 
 

@@ -74,7 +74,7 @@ def readSANS(filename):
     control['monitor3'] = decodeHDF(entry['SANS/monitor3/counts'][0])
     meta['control'] = control
     meta['user'] = decodeHDF(entry['user/name'][0])
-    meta['email'] = decodeHDF(entry['user/email'][0])
+    meta['email'] = decodeHDF(entry['proposal_user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
     # todo: commented because not existing: meta['attenuator'] = decodeHDF(entry['SANS/attenuator/selection'][0])
     f.close()
@@ -132,7 +132,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
 
 
 # ======================== main loop ===========================
-sq = SinqFileList(fileroot, int(year), inst, 'hdf', start-1, end)
+sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
 meta = readSANS(fname)
@@ -140,8 +140,8 @@ meta = readSANS(fname)
 proposal = meta['experiment_identifier']
 while fname:
     meta = readSANS(fname)
-    # printMeta(numor, meta)
-    writeDataset(numo, fname, meta, token)
+    printMeta(numor, meta)
+    # writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)
 
 

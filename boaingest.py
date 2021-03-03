@@ -5,54 +5,46 @@ from sinqutils import SinqFileList, decodeHDF, pathExists, printMeta
 import h5py
 
 if len(sys.argv) < 3:
-    print('Usage:\n\t:hrptingest.py year start end')
+    print('Usage:\n\t:boaingest.py year start end')
     sys.exit(1)
 
 # ================== Configuration
 
-inst = 'hrpt'
+inst = 'boa'
 year = sys.argv[1]
 start = sys.argv[2]
 end = sys.argv[3]
 
-fileroot = 'test/hrpt'
+fileroot = 'test/boa'
 
-# ------------- reading Data from HRPT files
+# ------------- reading Data from BOA files
 
-def readHRPT(filename):
+def readBOA(filename):
     f = h5py.File(filename, 'r')
     meta = {}
-    entry = f['entry1']
+    entry = f['entry']
     meta['title'] = decodeHDF(entry['title'][0])
-    # meta['collection_description'] = decodeHDF(entry['comment'][0]).strip()
+    meta['collection_description'] = decodeHDF(entry['comment'][0]).strip()
     # todo normalize times to RFC format
     meta['start_time'] = decodeHDF(entry['start_time'][0])
-     # todo normalize times to RFC format
-    # meta['end_time'] = decodeHDF(entry['end_time'][0])
-    meta['instrument'] = 'HRPT'
-    meta['wavelength'] = decodeHDF(entry['HRPT/Monochromator/lambda'][0])
-    meta['detector two_theta start'] = decodeHDF(entry['HRPT/HRPT-CERCA-Detector/two_theta_start'][0])
-    meta['proton_monitor'] = decodeHDF(entry['HRPT/HRPT-CERCA-Detector/proton_monitor'][0])
-    meta['summed counts'] = decodeHDF(entry['data1/counts'][0])
-    meta['position_monochromator_lift'] = decodeHDF(entry['HRPT/Monochromator/lift'][0])
+    # todo normalize times to RFC format
+    meta['instrument'] = 'BOA'
+
     sample = {}
-    sample['name'] = decodeHDF(entry['sample/sample_name'][0])
-    if pathExists(entry,'sample/sample_changer_position'.split('/')):
-        sample['sample_changer position'] = decodeHDF(entry['sample/sample_changer_position'][0])
-    else:
-        sample['sample_changer position'] = 'UNKNOWN'
-    sample['sample rotation'] = decodeHDF(entry['sample/sample_table_rotation'][0])
+    sample['name'] = decodeHDF(entry['sample/name'][0])
     if pathExists(entry,'sample/temperature'.split('/')):
         sample['temperature'] = decodeHDF(entry['sample/temperature'][0])
     else:
         sample['temperature'] = 'UNKNOWN'
-    if pathExists(entry,'sample/magnet'.split('/')):
+    # TODO: check a number of files and see if you can find an entry for magnets.
+    # It coulkd also be that the name is magnetic_field.    
+    if pathExists(entry,'sample/magnet'.split('/') or entry, 'sample/magnetic_field'):
         sample['magnet'] = decodeHDF(entry['sample/magnet'][0])
     else:
         sample['magnet'] = 'UNKNOWN'
     meta['sample'] = sample
     meta['user'] = decodeHDF(entry['user/name'][0])
-    meta['email'] = decodeHDF(entry['proposal_user/email'][0])
+    meta['email'] = decodeHDF(entry['user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
     f.close()
     return meta
@@ -80,7 +72,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         meta = {}
         meta['file_time'] = scientificmeta['start_time']
         meta['instrument'] = scientificmeta['instrument']
-        meta['owner']=proposal['firstname']+proposal['lastname']
+        meta['owner']=proposal['firstname']+ ' ' +proposal['lastname']
         meta['ownerEmail']=proposal['email']
         meta['title'] = scientificmeta['title']
         meta['sample name'] = scientificmeta['sample']['name']
@@ -88,20 +80,10 @@ def writeDataset(numor, fname,  scientificmeta, token):
             tempCandidate=scientificmeta['sample']['temperature']
             if isinstance(tempCandidate, float):
                 temp='%.1f' % tempCandidate
-        if 'magfield' in scientificmeta['sample']:
-            magCandidate = scientificmeta['sample']['magfield']
-            if isinstance(magfield, float):
-                mag='%.1f' % magCandidate
-        # HRPT specific
-        meta['wavelength'] = scientificmeta['wavelength']
-        meta['detector two_theta start'] = scientificmeta['detector two_theta start']
-        # sample monitor
-        meta['proton_monitor'] = scientificmeta['proton_monitor']
-        meta['sample_changer position'] = scientificmeta['sample_changer position']
-        meta['sample rotation'] = scientificmeta['sample rotation']
-        meta['summed counts'] = scientificmeta['summed counts']
-        meta['position_monochromator_lift'] = scientificmeta['position_monochromator_lift']
-
+        if 'magnet' in scientificmeta['sample']:
+            magCandidate=scientificmeta['sample']['magnet']
+            if isinstance(tempCandidate, float):
+                mag='%.1f' % tempCandidate
 
         meta['principalInvestigator']=proposal['pi_email']
         meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
@@ -131,11 +113,13 @@ def writeDataset(numor, fname,  scientificmeta, token):
 sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
-meta = readHRPT(fname)
+meta = readBOA(fname)
 # TODO: get a token
 proposal = meta['experiment_identifier']
 while fname:
-    meta = readHRPT(fname)
+    meta = readBOA(fname)
+    # TODO By commenting away writeDatset() and uncommenting printMeta() you can 
+    # do a little test that the reading works OK. 
     printMeta(numor, meta)
     # writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)

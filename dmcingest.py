@@ -15,7 +15,7 @@ year = sys.argv[1]
 start = sys.argv[2]
 end = sys.argv[3]
 
-fileroot = 'test/sans'
+fileroot = 'test/dmc'
 
 # ------------- reading Data from DMC files
 
@@ -32,16 +32,19 @@ def readDMC(filename):
     meta['instrument'] = 'DMC'
     meta['wavelength'] = decodeHDF(entry['DMC/Monochromator/lambda'][0])
     meta['detector two_theta start'] = decodeHDF(entry['DMC/DMC-BF3-Detector/two_theta_start'][0])
-    meta['proton_monitor'] = decodeHDF(entry['DMC/DMC-BF3-Detector/proton_monitor'])
-    meta['summed counts'] = decodeHDF(entry['data1/counts'])
+    meta['proton_monitor'] = decodeHDF(entry['DMC/DMC-BF3-Detector/proton_monitor'][0])
+    meta['summed counts'] = decodeHDF(entry['data1/counts'][0])
     if pathExists(entry,'SANS/detector/beam_center_x'.split('/')):
         detector['beam_center_x'] = decodeHDF(entry['SANS/detector/beam_center_x'][0])*7.5
         detector['beam_center_y'] = decodeHDF(entry['SANS/detector/beam_center_y'][0])*7.5
     meta['detector'] = detector
     sample = {}
     sample['name'] = decodeHDF(entry['sample/sample_name'][0])    
-    # sample['sample_changer position'] = decodeHDF(entry['sample/sample_changer_position'])
-    sample['sample rotation'] = decodeHDF(entry['sample/sample_table_rotation'])
+    if pathExists(entry,'sample/sample_changer_position'.split('/')):
+        sample['sample_changer position'] = decodeHDF(entry['sample/sample_changer_position'][0])
+    else:
+        sample['sample_changer position'] = 'UNKNOWN'
+    sample['sample rotation'] = decodeHDF(entry['sample/sample_table_rotation'][0])
     if pathExists(entry,'sample/temperature'.split('/')):
         sample['temperature'] = decodeHDF(entry['sample/temperature'][0])
     else:
@@ -100,6 +103,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         meta['proton_monitor'] = scientificmeta['proton_monitor']
         meta['sample_changer position'] = scientificmeta['sample_changer position']
         meta['sample rotation'] = scientificmeta['sample rotation']
+        # check
         meta['summed counts'] = scientificmeta['summed counts']
 
 
