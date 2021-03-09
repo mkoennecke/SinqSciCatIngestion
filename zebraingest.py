@@ -3,6 +3,9 @@ import sys
 import os
 from sinqutils import SinqFileList, decodeHDF, pathExists, printMeta
 import h5py
+from beamInst.scicat import SciCat
+from beamInst.ingest_file import *
+import json
 
 if len(sys.argv) < 3:
     print('Usage:\n\t:zebraingest.py year start end')
@@ -21,6 +24,18 @@ fileroot = 'test/zebra'
 
 
 def readZEBRA(filename):
+    if os.path.exists(filename):
+        print('hdf file found')
+    else:
+        filename = filename.replace(".hdf", ".ccl")
+        if os.path.exists(filename):
+            print('ccl file found')
+        else:
+            filename = filename.replace(".ccl", ".dat")
+            if os.path.exists(filename):
+                print('dat file found')
+            else:
+                print('datatype unknown')
     cclsuffix = '.ccl'
     datsuffix = '.dat'
     hdfsuffix = '.hdf'
@@ -48,8 +63,8 @@ def readZEBRA(filename):
         meta['date'] = decodeHDF(entry['start_time'][0])
         # todo normalize times to RFC format
         meta['instrument'] = 'ZEBRA'
+        meta['sample'] = decodeHDF(entry['sample/name'][0])
         sample = {}
-        sample['name'] = decodeHDF(entry['sample/name'][0])
         if pathExists(entry,'sample/temperature'.split('/')):
             sample['temperature'] = decodeHDF(entry['sample/temperature'][0])
         else:
@@ -58,108 +73,113 @@ def readZEBRA(filename):
             sample['magnet'] = decodeHDF(entry['sample/magnet'][0])
         else:
             sample['magnet'] = 'UNKNOWN'
-        meta['sample'] = sample
+        meta['sample_directory'] = sample
         meta['user'] = decodeHDF(entry['proposal_user/name'][0])
-        meta['email'] = decodeHDF(entry['proposal_user/email'][0])
-        meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
+        meta['proposal_email'] = decodeHDF(entry['proposal_user/email'][0])
+        meta['ProposalID'] = decodeHDF(entry['proposal_id'][0])
         # zebra_mode
         meta['detector_mode'] = '2d'
-        # stt
+        meta['stt'] = decodeHDF(entry['sample/stt'][0])
         meta['chi'] = decodeHDF(entry['sample/chi'][0])
         meta['phi'] = decodeHDF(entry['sample/phi'][0])
+        meta['om'] = decodeHDF(entry['sample/om'][0])
+        meta['nu'] = decodeHDF(entry['sample/nu'][0])
         # om, nu
         f.close()
-    return meta
+    return meta, filename
 
 
-def writeDataset(numor, fname,  scientificmeta, token):
+def writeDataset(numor, fname,  scientificmeta, username, password):
 
-    filenameList='intermediate/filelisting-'+str(numor)+'.txt'
-    filelist = open(filenameList,'w') 
-    filelist.write(fname)
-    filelist.close()
+    # filenameList='intermediate/filelisting-'+str(numor)+'.txt'
+    # filelist = open(filenameList,'w') 
+    # filelist.write(fname)
+    # filelist.close()
 
-    # print(scientificmeta)
-    proposalId='20.500.11935/'+scientificmeta['experiment_identifier'].replace(' ','')
+    print(scientificmeta)
+    proposalId='20.500.11935/'+scientificmeta['ProposalID'].replace(' ','')
     print(proposalId)
 
-    url='https://dacat-qa.psi.ch/api/v3/Proposals/'+urllib.parse.quote_plus(proposalId)+'?access_token='+token
-    r = requests.get(url)
-    if(r.status_code != 200):
-        print('Proposal Error Result:',url,r.text)
-    else:
-        proposal= json.loads(r.text)
+    # url='https://dacat-qa.psi.ch/api/v3/Proposals/'+urllib.parse.quote_plus(proposalId)+'?access_token='+token
+    # r = requests.get(url)
+    # if(r.status_code != 200):
+    #     print('Proposal Error Result:',url,r.text)
+    #     proposal = {}
+    #     proposal['pi_email'] = scientificmeta['email']
+    #     proposal['name'] = scientificmeta['user']
+    #     proposal['title'] = scientificmeta['proposal_title']
+    #     proposal['proposalID'] = scientificmeta['experiment_identifier']
+    #     proposal['ownerGroup']='a-35433'
+    #     proposal['accessGroups']='a-35433'
+    # else:
+    #     proposal= json.loads(r.text)
 
     # create metadata infos from data in proposal and scientific meta data
         # all instruments
-        meta = {}
-        meta['file_time'] = scientificmeta['date']
-        meta['instrument'] = scientificmeta['instrument']
-        meta['user']=scientificmeta['user']
-        meta['ownerEmail']=proposal['proposal_email']
-        meta['title'] = scientificmeta['title']
-        if 'temperature' in scientificmeta['sample']:
-            tempCandidate=scientificmeta['sample']['temperature']
-            if isinstance(tempCandidate, float):
-                temp='%.1f' % tempCandidate
-        # ZEBRA specific
-        meta['detector_mode'] = scientificmeta['detector_mode']
+    meta = {}
+    meta['file_time'] = scientificmeta['date']
+    meta['instrument'] = scientificmeta['instrument']
+    meta['user']=scientificmeta['user']
+    meta['ownerEmail']=scientificmeta['proposal_email']
+    meta['title'] = scientificmeta['title']
+    if 'temperature' in scientificmeta['sample']:
+        tempCandidate=scientificmeta['sample_directory']['temperature']
+        if isinstance(tempCandidate, float):
+            temp='%.1f' % tempCandidate
+    # ZEBRA specific
+    meta['detector_mode'] = scientificmeta['detector_mode']
+    if 'stt' in scientificmeta:
         meta['stt'] = scientificmeta['stt']
+    else:
+        meta['stt'] = 'UNKNOWN'
+    if 'chi' in scientificmeta:
         meta['chi'] = scientificmeta['chi']
+    else:
+        meta['chi'] = 'UNKNOWN'
+    if 'phi' in scientificmeta:
         meta['phi'] = scientificmeta['phi']
+    else:
+        meta['phi'] = 'UNKNOWN'
+    if 'om' in scientificmeta:
         meta['om'] = scientificmeta['om']
+    else:
+        meta['om'] = 'UNKNOWN'
+    if 'nu' in scientificmeta:
         meta['nu'] = scientificmeta['nu']
+    else:
+        meta['nu'] = 'UNKNOWN'
 
 
-        meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']['name']+"-T="+temp
-        meta['ownerGroup']=proposal['ownerGroup']
-        meta['accessGroups']=proposal['accessGroups']
-        meta['proposalId']=proposalId
-        meta['scientificMetadata']=scientificmeta
-        # create metadata.json file
-        filenameMeta='intermediate/metadata-'+str(year)+'-'+str(start)+'.json'
-        metafile = open(filenameMeta,'w') 
-        metafile.write(json.dumps(meta, indent=3, sort_keys=True))
-        metafile.close()
-        # run datasetIngestor command
-        subprocess.call(["./datasetIngestor","-testenv", "-ingest", "-allowexistingsource", "-token", token, filenameMeta, filenameList])
-            # todo remove files in "intermediate" folder
+    meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']+"-T="
+    meta['ownerGroup']='a-35433'
+    meta['accessGroups']='a-35433'
+    meta['proposalId']=proposalId
+    meta['scientificMetadata']=scientificmeta
+    # create metadata.json file
+    filenameMeta='intermediate/metadata-'+str(year)+'-'+str(start)+'.json'
+    metafile = json.dumps(meta, indent=3, sort_keys=True)
+    print(metafile)
+    scicat = SciCat('http://localhost:4200')
+    scicat.access_token = scicat.login(username, password)
+    scicat.dataset_post(metafile)
+    ingest_file()
+    # run datasetIngestor command
+    # subprocess.call(["./datasetIngestor","-testenv", "-ingest", "-allowexistingsource", "-token", token, filenameMeta, filenameList])
+        # todo remove files in "intermediate" folder
 
 # ======================== main loop ===========================
 sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
-if os.path.exists(fname):
-    print('hdf file found')
-else:
-    fname = fname.replace(".hdf", ".ccl")
-    if os.path.exists(fname):
-        print('ccl file found')
-    else:
-        fname = fname.replace(".ccl", ".dat")
-        if os.path.exists(fname):
-            print('dat file found')
-        else:
-            print('datatype unknown')
+username = input('username: ')
+password = input('password: ')
+meta, fname = readZEBRA(fname)
 
-meta = readZEBRA(fname)
 # TODO: get a token
 while fname:
-    if os.path.exists(fname):
-        print('hdf file found')
-    else:
-        fname = fname.replace(".hdf", ".ccl")
-        if os.path.exists(fname):
-            print('ccl file found')
-        else:
-            fname = fname.replace(".ccl", ".dat")
-            if os.path.exists(fname):
-                print('dat file found')
-            else:
-                print('datatype unknown')
-    meta = readZEBRA(fname)
+    meta, fname = readZEBRA(fname)
     # TODO By commenting away writeDatset() and uncommenting printMeta() you can 
     # do a little test that the reading works OK. 
-    printMeta(numor, meta)
-    # writeDataset(numo, fname, meta, token)
+    # printMeta(numor, meta)
+    writeDataset(numor, fname, meta, username, password)
     numor, fname = next(sqiter)

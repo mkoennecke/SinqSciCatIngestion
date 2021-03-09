@@ -21,6 +21,18 @@ fileroot = 'test/amor'
 
 
 def readAMOR(filename):
+    if os.path.exists(filename):
+        print('hdf file found')
+    else:
+        filename = filename.replace(".hdf", ".ccl")
+        if os.path.exists(filename):
+            print('ccl file found')
+        else:
+            filename = filename.replace(".ccl", ".dat")
+            if os.path.exists(filename):
+                print('dat file found')
+            else:
+                print('datatype unknown')
     cclsuffix = '.ccl'
     datsuffix = '.dat'
     hdfsuffix = '.hdf'
@@ -84,6 +96,13 @@ def writeDataset(numor, fname,  scientificmeta, token):
     r = requests.get(url)
     if(r.status_code != 200):
         print('Proposal Error Result:',url,r.text)
+        proposal = {}
+        proposal['pi_email'] = scientificmeta['email']
+        proposal['name'] = scientificmeta['user']
+        proposal['title'] = scientificmeta['proposal_title']
+        proposal['proposalID'] = scientificmeta['experiment_identifier']
+        proposal['ownerGroup']='a-35433'
+        proposal['accessGroups']='a-35433'
     else:
         proposal= json.loads(r.text)
 
@@ -103,7 +122,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
 
 
         meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']['name']+"-T="+temp
-        meta['ownerGroup']=proposal['ownerGroup']
+        meta['ownerGroup']='a-35433'
         meta['accessGroups']=proposal['accessGroups']
         meta['proposalId']=proposalId
         meta['scientificMetadata']=scientificmeta
@@ -120,34 +139,10 @@ def writeDataset(numor, fname,  scientificmeta, token):
 sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
-if os.path.exists(fname):
-    print('hdf file found')
-else:
-    fname = fname.replace(".hdf", ".ccl")
-    if os.path.exists(fname):
-        print('ccl file found')
-    else:
-        fname = fname.replace(".ccl", ".dat")
-        if os.path.exists(fname):
-            print('dat file found')
-        else:
-            print('datatype unknown')
-meta = readAMOR(fname)
+meta, fname = readAMOR(fname)
 # TODO: get a token
 while fname:
-    if os.path.exists(fname):
-        print('hdf file found')
-    else:
-        fname = fname.replace(".hdf", ".ccl")
-        if os.path.exists(fname):
-            print('ccl file found')
-        else:
-            fname = fname.replace(".ccl", ".dat")
-            if os.path.exists(fname):
-                print('dat file found')
-            else:
-                print('datatype unknown')
-    meta = readAMOR(fname)
+    meta, fname = readAMOR(fname)
     # TODO By commenting away writeDatset() and uncommenting printMeta() you can 
     # do a little test that the reading works OK. 
     printMeta(numor, meta)

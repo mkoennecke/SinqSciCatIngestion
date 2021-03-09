@@ -75,6 +75,7 @@ def readSANS(filename):
     meta['control'] = control
     meta['user'] = decodeHDF(entry['user/name'][0])
     meta['email'] = decodeHDF(entry['proposal_user/email'][0])
+    meta['proposal_title'] = decodeHDF(entry['proposal_title'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
     # todo: commented because not existing: meta['attenuator'] = decodeHDF(entry['SANS/attenuator/selection'][0])
     f.close()
@@ -95,6 +96,13 @@ def writeDataset(numor, fname,  scientificmeta, token):
     r = requests.get(url)
     if(r.status_code != 200):
         print('Proposal Error Result:',url,r.text)
+        proposal = {}
+        proposal['pi_email'] = scientificmeta['email']
+        proposal['name'] = scientificmeta['user']
+        proposal['title'] = scientificmeta['proposal_title']
+        proposal['proposalID'] = scientificmeta['experiment_identifier']
+        proposal['ownerGroup']='a-35433'
+        proposal['accessGroups']='a-35433'
     else:
         proposal= json.loads(r.text)
 
@@ -117,8 +125,8 @@ def writeDataset(numor, fname,  scientificmeta, token):
                 temp='%.1f' % tempCandidate
             
         meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']['name']+"-T="+temp
-        meta['ownerGroup']=proposal['ownerGroup']
-        meta['accessGroups']=proposal['accessGroups']
+        meta['ownerGroup']='a-35433'
+        meta['accessGroups']='a-35433'
         meta['proposalId']=proposalId
         meta['scientificMetadata']=scientificmeta
         # create metadata.json file

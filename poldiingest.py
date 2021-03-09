@@ -65,6 +65,13 @@ def writeDataset(numor, fname,  scientificmeta, token):
     r = requests.get(url)
     if(r.status_code != 200):
         print('Proposal Error Result:',url,r.text)
+        proposal = {}
+        proposal['pi_email'] = scientificmeta['email']
+        proposal['name'] = scientificmeta['user']
+        proposal['title'] = scientificmeta['proposal_title']
+        proposal['proposalID'] = scientificmeta['experiment_identifier']
+        proposal['ownerGroup']='a-35433'
+        proposal['accessGroups']='a-35433'
     else:
         proposal= json.loads(r.text)
 
@@ -98,7 +105,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         meta['description']=scientificmeta['title']+" / collection:"+scientificmeta['collection_description']
 
         meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']['name']+"-T="+temp
-        meta['ownerGroup']=proposal['ownerGroup']
+        meta['ownerGroup']='a-35433'
         meta['accessGroups']=proposal['accessGroups']
         meta['proposalId']=proposalId
         meta['scientificMetadata']=scientificmeta
