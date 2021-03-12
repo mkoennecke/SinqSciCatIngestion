@@ -4,7 +4,7 @@ import os
 from sinqutils import SinqFileList, decodeHDF, pathExists, printMeta
 import h5py
 from beamInst.scicat import SciCat
-from beamInst.ingest_file import *
+from beamInst.ingest_file import main
 import json
 
 if len(sys.argv) < 3:
@@ -158,11 +158,11 @@ def writeDataset(numor, fname,  scientificmeta, username, password):
     # create metadata.json file
     filenameMeta='intermediate/metadata-'+str(year)+'-'+str(start)+'.json'
     metafile = json.dumps(meta, indent=3, sort_keys=True)
-    print(metafile)
-    scicat = SciCat('http://localhost:4200')
-    scicat.access_token = scicat.login(username, password)
+    scicat = SciCat("http://localhost:3000")
+    with open("beamInst/config.json") as json_file:
+        credentials = json.load(json_file)
+        scicat.login(credentials["username"], credentials["password"])
     scicat.dataset_post(metafile)
-    ingest_file()
     # run datasetIngestor command
     # subprocess.call(["./datasetIngestor","-testenv", "-ingest", "-allowexistingsource", "-token", token, filenameMeta, filenameList])
         # todo remove files in "intermediate" folder
@@ -171,8 +171,6 @@ def writeDataset(numor, fname,  scientificmeta, username, password):
 sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
-username = input('username: ')
-password = input('password: ')
 meta, fname = readZEBRA(fname)
 
 # TODO: get a token
@@ -181,5 +179,6 @@ while fname:
     # TODO By commenting away writeDatset() and uncommenting printMeta() you can 
     # do a little test that the reading works OK. 
     # printMeta(numor, meta)
-    writeDataset(numor, fname, meta, username, password)
+    writeDataset(numor, fname, meta, token)
     numor, fname = next(sqiter)
+
