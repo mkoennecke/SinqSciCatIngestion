@@ -15,7 +15,7 @@ year = sys.argv[1]
 start = sys.argv[2]
 end = sys.argv[3]
 
-fileroot = 'test/sans'
+fileroot = 'test/dmc'
 
 # ------------- reading Data from DMC files
 
@@ -28,20 +28,18 @@ def readDMC(filename):
     # todo normalize times to RFC format
     meta['start_time'] = decodeHDF(entry['start_time'][0])
      # todo normalize times to RFC format
-    meta['end_time'] = decodeHDF(entry['end_time'][0])
     meta['instrument'] = 'DMC'
     meta['wavelength'] = decodeHDF(entry['DMC/Monochromator/lambda'][0])
     meta['detector two_theta start'] = decodeHDF(entry['DMC/DMC-BF3-Detector/two_theta_start'][0])
-    meta['proton_monitor'] = decodeHDF(entry['DMC/DMC-BF3-Detector/proton_monitor'])
-    meta['summed counts'] = decodeHDF(entry['data1/counts'])
-    if pathExists(entry,'SANS/detector/beam_center_x'.split('/')):
-        detector['beam_center_x'] = decodeHDF(entry['SANS/detector/beam_center_x'][0])*7.5
-        detector['beam_center_y'] = decodeHDF(entry['SANS/detector/beam_center_y'][0])*7.5
-    meta['detector'] = detector
+    meta['proton_monitor'] = decodeHDF(entry['DMC/DMC-BF3-Detector/proton_monitor'][0])
+    meta['summed counts'] = decodeHDF(entry['data1/counts'][0])
     sample = {}
     sample['name'] = decodeHDF(entry['sample/sample_name'][0])    
-    # sample['sample_changer position'] = decodeHDF(entry['sample/sample_changer_position'])
-    sample['sample rotation'] = decodeHDF(entry['sample/sample_table_rotation'])
+    if pathExists(entry,'sample/sample_changer_position'.split('/')):
+        sample['sample_changer position'] = decodeHDF(entry['sample/sample_changer_position'][0])
+    else:
+        sample['sample_changer position'] = 'UNKNOWN'
+    sample['sample rotation'] = decodeHDF(entry['sample/sample_table_rotation'][0])
     if pathExists(entry,'sample/temperature'.split('/')):
         sample['temperature'] = decodeHDF(entry['sample/temperature'][0])
     else:
@@ -52,7 +50,7 @@ def readDMC(filename):
         sample['magnet'] = 'UNKNOWN'
     meta['sample'] = sample
     meta['user'] = decodeHDF(entry['user/name'][0])
-    meta['email'] = decodeHDF(entry['user/email'][0])
+    meta['email'] = decodeHDF(entry['proposal_user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
     f.close()
     return meta
@@ -72,13 +70,20 @@ def writeDataset(numor, fname,  scientificmeta, token):
     r = requests.get(url)
     if(r.status_code != 200):
         print('Proposal Error Result:',url,r.text)
+        proposal = {}
+        proposal['pi_email'] = scientificmeta['email']
+        proposal['name'] = scientificmeta['user']
+        proposal['title'] = scientificmeta['proposal_title']
+        proposal['proposalID'] = scientificmeta['experiment_identifier']
+        proposal['ownerGroup']='a-35433'
+        proposal['accessGroups']='a-35433'
     else:
         proposal= json.loads(r.text)
 
     # create metadata infos from data in proposal and scientific meta data
         # all instruments
         meta = {}
-        meta['file_time'] = "start time:"+scientificmeta['start_time']+"end time:"+scientificmeta['end_time']
+        meta['file_time'] = scientificmeta['start_time']
         meta['instrument'] = scientificmeta['instrument']
         meta['owner']=proposal['firstname']+proposal['lastname']
         meta['ownerEmail']=proposal['email']
@@ -100,6 +105,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         meta['proton_monitor'] = scientificmeta['proton_monitor']
         meta['sample_changer position'] = scientificmeta['sample_changer position']
         meta['sample rotation'] = scientificmeta['sample rotation']
+        # check
         meta['summed counts'] = scientificmeta['summed counts']
 
 
@@ -114,7 +120,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         temp='undefined'
             
         meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']['name']+"-T="+temp
-        meta['ownerGroup']=proposal['ownerGroup']
+        meta['ownerGroup']='a-35433'
         meta['accessGroups']=proposal['accessGroups']
         meta['proposalId']=proposalId
         meta['scientificMetadata']=scientificmeta
@@ -129,7 +135,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
 
 
 # ======================== main loop ===========================
-sq = SinqFileList(fileroot, int(year), inst, 'hdf', start-1, end)
+sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
 meta = readDMC(fname)
@@ -137,8 +143,8 @@ meta = readDMC(fname)
 proposal = meta['experiment_identifier']
 while fname:
     meta = readDMC(fname)
-    # printMeta(numor, meta)
-    writeDataset(numo, fname, meta, token)
+    printMeta(numor, meta)
+    # writeDataset(numor, fname, meta, token)
     numor, fname = next(sqiter)
 
 

@@ -57,14 +57,14 @@ def readFOCUS(filename):
     else:
         sample['magnet'] = 'UNKNOWN'
     meta['sample'] = sample
-    meta['monitor'] = decodeHDF(entry['FOCUS/counter/monitor'])
+    meta['monitor'] = decodeHDF(entry['FOCUS/counter/monitor'][0])
     meta['user'] = decodeHDF(entry['user/name'][0])
-    meta['email'] = decodeHDF(entry['user/email'][0])
+    meta['email'] = decodeHDF(entry['proposal_user/email'][0])
     meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
-    meta['disk_chopper_speed'] = decodeHDF(entry['FOCUS/disk_chopper/rotation_speed'])
-    meta['fermi_chopper_speed'] = decodeHDF(entry['FOCUS/fermi_chopper/rotation_speed'])
-    meta['disk_chopper_ratio'] = decodeHDF(entry['FOCUS/disk_chopper/ratio'])
-    meta['fermi_chopper_phase'] = decodeHDF(entry['FOCUS/fermi_chopper/phase'])
+    meta['disk_chopper_speed'] = decodeHDF(entry['FOCUS/disk_chopper/rotation_speed'][0])
+    meta['fermi_chopper_speed'] = decodeHDF(entry['FOCUS/fermi_chopper/rotation_speed'][0])
+    meta['disk_chopper_ratio'] = decodeHDF(entry['FOCUS/disk_chopper/ratio'][0])
+    meta['fermi_chopper_phase'] = decodeHDF(entry['FOCUS/fermi_chopper/phase'][0])
     f.close()
     return meta
 
@@ -83,13 +83,20 @@ def writeDataset(numor, fname,  scientificmeta, token):
     r = requests.get(url)
     if(r.status_code != 200):
         print('Proposal Error Result:',url,r.text)
+        proposal = {}
+        proposal['pi_email'] = scientificmeta['email']
+        proposal['name'] = scientificmeta['user']
+        proposal['title'] = scientificmeta['proposal_title']
+        proposal['proposalID'] = scientificmeta['experiment_identifier']
+        proposal['ownerGroup']='a-35433'
+        proposal['accessGroups']='a-35433'
     else:
         proposal= json.loads(r.text)
 
     # create metadata infos from data in proposal and scientific meta data
         # all instruments
         meta = {}
-        meta['file_time'] = "start time:"+scientificmeta['start_time']+"end time:"+scientificmeta['end_time']
+        meta['file_time'] = scientificmeta['start_time']
         meta['instrument'] = scientificmeta['instrument']
         meta['owner']=proposal['firstname']+ ' ' +proposal['lastname']
         meta['ownerEmail']=proposal['email']
@@ -119,7 +126,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
         temp='undefined'
             
         meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']['name']+"-T="+temp
-        meta['ownerGroup']=proposal['ownerGroup']
+        meta['ownerGroup']='a-35433'
         meta['accessGroups']=proposal['accessGroups']
         meta['proposalId']=proposalId
         meta['scientificMetadata']=scientificmeta
@@ -134,7 +141,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
 
 
 # ======================== main loop ===========================
-sq = SinqFileList(fileroot, int(year), inst, 'hdf', start, end)
+sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
 meta = readFOCUS(fname)

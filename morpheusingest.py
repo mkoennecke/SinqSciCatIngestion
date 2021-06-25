@@ -5,48 +5,31 @@ from sinqutils import SinqFileList, decodeHDF, pathExists, printMeta
 import h5py
 
 if len(sys.argv) < 3:
-    print('Usage:\n\t:poldiingest.py year start end')
+    print('Usage:\n\t:morpheusingest.py year start end')
     sys.exit(1)
 
 # ================== Configuration
 
-inst = 'poldi'
+inst = 'morpheus'
 year = sys.argv[1]
 start = sys.argv[2]
 end = sys.argv[3]
 
-fileroot = 'test/poldi'
+fileroot = 'test/morpheus'
 
-# ------------- reading Data from POLDI files
+# ------------- reading Data from MORPHEUS files
 
-def readPOLDI(filename):
-    f = h5py.File(filename, 'r')
+def readMORPHEUS(filename):
+    f = open(filename, 'r')
     meta = {}
-    entry = f['entry1']
-    meta['title'] = decodeHDF(entry['title'][0])
-    meta['collection_description'] = decodeHDF(entry['comment'][0]).strip()
-    # todo normalize times to RFC format
-    meta['start_time'] = decodeHDF(entry['start_time'][0])
-     # todo normalize times to RFC format
-    meta['end_time'] = decodeHDF(entry['end_time'][0])
-    meta['instrument'] = 'POLDI'
-    sample = {}
-    sample['name'] = decodeHDF(entry['sample/name'][0])
-    sample['environment'] = decodeHDF(entry['sample/environment'][0])
-    if pathExists(entry,'sample/temperature'.split('/')):
-        sample['temperature'] = decodeHDF(entry['sample/temperature'][0])
-    else:
-        sample['temperature'] = 'UNKNOWN'
-    if pathExists(entry,'sample/magnet'.split('/')):
-        sample['magnet'] = decodeHDF(entry['sample/magnet'][0])
-    else:
-        sample['magnet'] = 'UNKNOWN'
-    meta['sample'] = sample
-    meta['user'] = decodeHDF(entry['user/name'][0])
-    meta['email'] = decodeHDF(entry['proposal_user/email'][0])
-    meta['experiment_identifier'] = decodeHDF(entry['proposal_id'][0])
-    # todo: commented because not existing: meta['attenuator'] = decodeHDF(entry['SANS/attenuator/selection'][0])
-    meta['chopper_speed'] = decodeHDF(entry['POLDI/chopper/rotation_speed'][0])
+    dataset = ["Date", "User" , "Sample Name", "Title", "ProposalID"]
+    x = 0
+    for line in f:
+        for data in dataset:
+            extractedData = line.split('=')
+            if (data in extractedData[0] and len(extractedData) > 1):
+                meta[extractedData[0]] = extractedData[1]
+    meta['instrument'] = 'MORPHEUS'
     f.close()
     return meta
 
@@ -76,34 +59,23 @@ def writeDataset(numor, fname,  scientificmeta, token):
         proposal= json.loads(r.text)
 
     # create metadata infos from data in proposal and scientific meta data
-
+        # all instruments
         meta = {}
-        meta['file_time'] = "start time:"+scientificmeta['start_time']+"end time:"+scientificmeta['end_time']
-        meta['instrument'] = scientificmeta['instrument']
-        meta['owner']=proposal['firstname']+proposal['lastname']
-        meta['ownerEmail']=proposal['email']
-        meta['title'] = scientificmeta['title']
-        meta['sample name'] = scientificmeta['sample']['name']
-        temp='undefined'
+        meta['file_time'] = scientificmeta['Date']
+        meta['instrument'] = scientificmeta['Instrument']
+        meta['user']= scientificmeta['User']
+        meta['title'] = scientificmeta['Title']
+        meta['sample name'] = scientificmeta['Sample Name']
         if 'temperature' in scientificmeta['sample']:
             tempCandidate=scientificmeta['sample']['temperature']
             if isinstance(tempCandidate, float):
                 temp='%.1f' % tempCandidate
-        
-        # POLDI specific
-        meta['environment'] = scientificmeta['sample']['environment']
-        meta['chopper_speed'] = scientificmeta['chopper_speed']
 
-        meta['principalInvestigator']=proposal['pi_email']
-        meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
-        meta['dataFormat'] = 'SANS-NEXUS-HDF5'
         meta['sourceFolder'] = root
-        meta['owner']=proposal['firstname']+proposal['lastname']
-        meta['ownerEmail']=proposal['email']
         meta['type']='raw'
         # TODO decide what fields to add to description
-        meta['description']=scientificmeta['title']+" / collection:"+scientificmeta['collection_description']
-
+        temp='undefined'
+            
         meta['datasetName']=scientificmeta['user']+"-"+scientificmeta['sample']['name']+"-T="+temp
         meta['ownerGroup']='a-35433'
         meta['accessGroups']=proposal['accessGroups']
@@ -120,14 +92,15 @@ def writeDataset(numor, fname,  scientificmeta, token):
 
 
 # ======================== main loop ===========================
-sq = SinqFileList(fileroot, int(year), inst, 'hdf', int(start)-1, end)
+sq = SinqFileList(fileroot, int(year), inst, 'dat', int(start)-1, end)
 sqiter = iter(sq)
 numor, fname = next(sqiter)
-meta = readPOLDI(fname)
+meta = readMORPHEUS(fname)
 # TODO: get a token
-proposal = meta['experiment_identifier']
 while fname:
-    meta = readPOLDI(fname)
+    meta = readMORPHEUS(fname)
+    # TODO By commenting away writeDatset() and uncommenting printMeta() you can 
+    # do a little test that the reading works OK. 
     printMeta(numor, meta)
     # writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)
