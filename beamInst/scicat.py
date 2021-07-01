@@ -28,9 +28,23 @@ class SciCat:
             self.access_token = json_res["id"]
             return json_res["id"]
 
+    def loginPSI(self, username, password):
+        """Login"""
+        endpoint = '/auth/msad'
+        url = self.base_url + endpoint
+        payload = {"username": username, "password": password} 
+        print(payload)
+        res = requests.post(url, json=payload)
+        if res.status_code != 200:
+            sys.exit(res.text)
+        else:
+            json_res = res.json()
+            self.access_token = json_res["access_token"]
+            return json_res["access_token"]
+
     def dataset_post(self, dataset):
         """Post Dataset"""
-        endpoint = "/Datasets"
+        endpoint = "/api/v3/Datasets"
         url = self.base_url + endpoint
         params = {"access_token": self.access_token}
         res = requests.post(
@@ -41,7 +55,7 @@ class SciCat:
     def origdatablock_post(self, dataset_pid, origdatablock):
         """Post Dataset Origdatablock"""
         encoded_pid = parse.quote_plus(dataset_pid)
-        endpoint = "/Datasets/" + encoded_pid + "/origdatablocks"
+        endpoint = "/api/v3/Datasets/" + encoded_pid + "/origdatablocks"
         url = self.base_url + endpoint
         params = {"access_token": self.access_token}
         res = requests.post(url, json=origdatablock, params=params).json()

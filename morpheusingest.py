@@ -104,5 +104,3 @@ while fname:
     printMeta(numor, meta)
     # writeDataset(numo, fname, meta, token)
     numor, fname = next(sqiter)
-
-

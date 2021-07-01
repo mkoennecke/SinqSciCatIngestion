@@ -6,6 +6,7 @@
 """
 from math import floor
 import numpy as np
+import math
 
 def makeSINQFilename(root,year,inst,numor,postfix):
     hundreds = floor(numor/1000)

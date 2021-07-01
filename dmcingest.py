@@ -98,7 +98,7 @@ def writeDataset(numor, fname,  scientificmeta, token):
             magCandidate = scientificmeta['sample']['magfield']
             if isinstance(magfield, float):
                 mag='%.1f' % magCandidate
-        # POLDI specific
+        # DMC specific
         meta['wavelength'] = scientificmeta['wavelength']
         meta['detector two_theta start'] = scientificmeta['detector two_theta start']
         # sample monitor
@@ -108,11 +108,9 @@ def writeDataset(numor, fname,  scientificmeta, token):
         # check
         meta['summed counts'] = scientificmeta['summed counts']
 
-
-
         meta['principalInvestigator']=proposal['pi_email']
         meta['creationLocation'] = proposal['MeasurementPeriodList'][0]['instrument']
-        meta['dataFormat'] = 'FOCUS-NEXUS-HDF5'
+        meta['dataFormat'] = 'DMC-NEXUS-HDF5'
         meta['sourceFolder'] = root
         meta['type']='raw'
         # TODO decide what fields to add to description
