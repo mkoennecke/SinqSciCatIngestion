@@ -92,7 +92,6 @@ def readSANS(filename):
 
 def makeFileEntry(fname):
     entry = {}
-    pdb.set_trace()
     # Get to the real file, we are looking at symlinks here
     p = Path(fname).resolve()
     stat = p.stat()

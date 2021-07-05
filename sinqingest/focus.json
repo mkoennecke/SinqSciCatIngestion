@@ -1,0 +1,13 @@
+{
+    "root": "/afs/psi.ch/project/sinqdata",
+    "instrument": "focus",
+    "year": "2018",
+    "user": "koennecke",
+    "password": "21:ErikaPSI",
+    "owner-group": "a-35433",
+    "access-groups": [
+	"a-35433"
+    ],
+    "extension": "hdf",
+    "scicat-url": "https://dacat-qa.psi.ch"
+}
