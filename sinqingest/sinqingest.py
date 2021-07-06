@@ -47,7 +47,7 @@ sq = SinqFileList(fullroot, int(config['year']), config['instrument'], config['e
                   int(sys.argv[2]), int(sys.argv[3]))
 sqiter = iter(sq)
 
-#pdb.set_trace()
+pdb.set_trace()
 #--------- Prepare connection to SciCat
 sc = SciCat(config['scicat-url'])
 sc.loginPSI(config['user'], config['password'])
@@ -61,7 +61,11 @@ while fname:
                                                     config['access-groups'])
     if ingestmeta:
         ingestmeta['sourceFolder'] = fullroot
-        datablock = sc.package_file(fname)
+        # Special feature for ZEBRA which supports multiple file formats
+        if 'real_filename' in ingestmeta:
+            datablock = sc.package_file(ingestmeta['real_filename'])
+        else:
+            datablock = sc.package_file(fname)
         status = sc.dataset_post(ingestmeta)
         if 'error' in status:
             print('Error ingesting %s, %s' % (fname, status))
