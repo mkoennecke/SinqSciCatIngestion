@@ -163,7 +163,7 @@ sqiter = iter(sq)
 numor, fname = next(sqiter)
 meta = readSANS(fname)
 sc = SciCat('https://dacat-qa.psi.ch')
-token = sc.loginPSI('koennecke', '21:ErikaPSI')
+token = sc.loginPSI('koennecke', 'XXXXX')
 proposal = meta['experiment_identifier']
 while fname:
     meta = readSANS(fname)
