@@ -47,7 +47,7 @@ sq = SinqFileList(fullroot, int(config['year']), config['instrument'], config['e
                   int(sys.argv[2]), int(sys.argv[3]))
 sqiter = iter(sq)
 
-pdb.set_trace()
+#pdb.set_trace()
 #--------- Prepare connection to SciCat
 sc = SciCat(config['scicat-url'])
 sc.loginPSI(config['user'], config['password'])
